@@ -172,7 +172,7 @@
       const bh = Math.round(((h - pad * 2) * val) / maxVal);
       const x = pad + i * (barW + 8);
       const y = h - pad - bh;
-      svg += `<rect x="${x}" y="${y}" width="${barW}" height="${Math.max(2, bh)}" rx="4" fill="#1b5e3f"><title>${labels[i]}: ${val.toLocaleString()} تومان</title></rect>`;
+      svg += `<rect x="${x}" y="${y}" width="${barW}" height="${Math.max(2, bh)}" rx="4" fill="#2e5d3b"><title>${labels[i]}: ${val.toLocaleString()} تومان</title></rect>`;
       if (i % 2 === 0 || values.length <= 7) {
         svg += `<text x="${x + barW / 2}" y="${h - 8}" font-size="10" text-anchor="middle" fill="#6b7280">${(labels[i] || "").slice(5)}</text>`;
       }

@@ -34,6 +34,9 @@
     const badge = document.getElementById("header-cart-badge");
     if (badge && cartData) {
       badge.textContent = cartData.item_count_fa || toPersianDigits(cartData.item_count || 0);
+      badge.classList.remove("pop");
+      void badge.offsetWidth;
+      badge.classList.add("pop");
     }
   }
 
@@ -444,5 +447,36 @@
         });
       }
     } catch {}
+  }
+
+  // Sticky header elevation on scroll
+  const headerEl = document.querySelector(".site-header");
+  if (headerEl) {
+    const onScroll = () => headerEl.classList.toggle("scrolled", window.scrollY > 18);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+  }
+
+  // Tasteful staggered scroll-reveal animations
+  const revealTargets = document.querySelectorAll(
+    ".section-header, .cat-card, .product-card, .trust-card"
+  );
+  if (revealTargets.length > 0 && "IntersectionObserver" in window) {
+    revealTargets.forEach((el, idx) => {
+      el.setAttribute("data-reveal", "");
+      el.style.transitionDelay = `${(idx % 4) * 55}ms`;
+    });
+    const observer = new IntersectionObserver(
+      (entries, obs) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+            obs.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.08, rootMargin: "0px 0px -24px 0px" }
+    );
+    revealTargets.forEach((el) => observer.observe(el));
   }
 })();

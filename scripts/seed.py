@@ -5,9 +5,10 @@ import os
 import sys
 from pathlib import Path
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageOps
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
+SEED_ASSETS_DIR = ROOT_DIR / "app" / "static" / "img" / "seed"
 sys.path.insert(0, str(ROOT_DIR))
 
 from app.config import Config
@@ -54,28 +55,38 @@ PROVINCES_CITIES: dict[str, list[str]] = {
 
 
 def _make_sample_image(
-    upload_root: Path, rel_base: str, bg_rgb: tuple[int, int, int], accent_rgb: tuple[int, int, int], size=(800, 600)
+    upload_root: Path,
+    rel_base: str,
+    bg_rgb: tuple[int, int, int],
+    accent_rgb: tuple[int, int, int],
+    size=(800, 600),
+    source_image: str | None = None,
+    centering: tuple[float, float] = (0.5, 0.5),
 ) -> dict[str, str]:
     out = upload_root / Path(rel_base).parent
     out.mkdir(parents=True, exist_ok=True)
-    img = Image.new("RGB", size, bg_rgb)
-    draw = ImageDraw.Draw(img)
-    w, h = size
-    # Warm decorative bands and emblem circles (avoids external font/bidi issues in Pillow)
-    draw.rectangle([0, h - 90, w, h], fill=accent_rgb)
-    draw.ellipse([w // 2 - 130, h // 2 - 150, w // 2 + 130, h // 2 + 110], fill=accent_rgb)
-    draw.ellipse([w // 2 - 90, h // 2 - 110, w // 2 + 90, h // 2 + 70], fill=bg_rgb)
-    draw.ellipse([w // 2 - 45, h // 2 - 65, w // 2 + 45, h // 2 + 25], fill=accent_rgb)
+    src_path = (SEED_ASSETS_DIR / source_image) if source_image else None
+    if src_path and src_path.exists():
+        with Image.open(src_path) as raw:
+            img = ImageOps.fit(raw.convert("RGB"), size, method=Image.Resampling.LANCZOS, centering=centering)
+    else:
+        img = Image.new("RGB", size, bg_rgb)
+        draw = ImageDraw.Draw(img)
+        w, h = size
+        draw.rectangle([0, h - 90, w, h], fill=accent_rgb)
+        draw.ellipse([w // 2 - 130, h // 2 - 150, w // 2 + 130, h // 2 + 110], fill=accent_rgb)
+        draw.ellipse([w // 2 - 90, h // 2 - 110, w // 2 + 90, h // 2 + 70], fill=bg_rgb)
+        draw.ellipse([w // 2 - 45, h // 2 - 65, w // 2 + 45, h // 2 + 25], fill=accent_rgb)
 
     jpg_rel = f"{rel_base}.jpg"
     webp_rel = f"{rel_base}.webp"
     thumb_rel = f"{rel_base}_thumb.webp"
 
-    img.save(upload_root / jpg_rel, format="JPEG", quality=86)
-    img.save(upload_root / webp_rel, format="WEBP", quality=84)
+    img.save(upload_root / jpg_rel, format="JPEG", quality=88)
+    img.save(upload_root / webp_rel, format="WEBP", quality=86)
     thumb = img.copy()
     thumb.thumbnail((420, 420), Image.Resampling.LANCZOS)
-    thumb.save(upload_root / thumb_rel, format="WEBP", quality=80)
+    thumb.save(upload_root / thumb_rel, format="WEBP", quality=82)
     return {"file_path": jpg_rel, "webp_path": webp_rel, "thumb_path": thumb_rel}
 
 
@@ -137,16 +148,16 @@ def run_seed(db_path: str | None = None, upload_dir: str | None = None) -> None:
 
         # 4. Categories
         cat_specs = [
-            ("برنج ایرانی", "برنج-ایرانی", "انواع برنج اصیل شمال، طارم، هاشمی و صدری سورت‌شده", (232, 240, 226), (27, 94, 63)),
-            ("حبوبات و غلات", "حبوبات", "حبوبات دست‌چین و زودپز محصول کشاورزان ایرانی", (245, 236, 220), (180, 83, 9)),
-            ("ادویه و چاشنی", "ادویه-و-چاشنی", "زعفران ممتاز قائنات و ادویه‌جات تازه آسیاب‌شده", (252, 236, 224), (217, 119, 6)),
-            ("چای و دمنوش", "چای-و-دمنوش", "چای بهاره لاهیجان و دمنوش‌های طبیعی بدون اسانس", (226, 242, 234), (19, 68, 45)),
+            ("برنج ایرانی", "برنج-ایرانی", "انواع برنج اصیل شمال، طارم، هاشمی و صدری سورت‌شده", (232, 240, 226), (45, 90, 60), "rice_tarom.jpg"),
+            ("حبوبات و غلات", "حبوبات", "حبوبات دست‌چین و زودپز محصول کشاورزان ایرانی", (245, 236, 220), (199, 132, 36), "legumes.jpg"),
+            ("ادویه و چاشنی", "ادویه-و-چاشنی", "زعفران ممتاز قائنات و ادویه‌جات تازه آسیاب‌شده", (252, 236, 224), (199, 132, 36), "spices_saffron.jpg"),
+            ("چای و دمنوش", "چای-و-دمنوش", "چای بهاره لاهیجان و دمنوش‌های طبیعی بدون اسانس", (226, 242, 234), (45, 90, 60), "tea_lahijan.jpg"),
         ]
         cat_ids: dict[str, int] = {}
-        for idx, (cname, cslug, cdesc, bg, acc) in enumerate(cat_specs):
+        for idx, (cname, cslug, cdesc, bg, acc, src_img) in enumerate(cat_specs):
+            img = _make_sample_image(up_root, f"categories/cat_{idx+1}", bg, acc, (600, 400), source_image=src_img)
             row = conn.execute("SELECT id FROM categories WHERE slug = ?", (cslug,)).fetchone()
             if not row:
-                img = _make_sample_image(up_root, f"categories/cat_{idx+1}", bg, acc, (600, 400))
                 cur = conn.execute(
                     """
                     INSERT INTO categories (name, slug, description, image_path, sort_order, is_active, meta_title, meta_description, created_at, updated_at)
@@ -298,8 +309,27 @@ def run_seed(db_path: str | None = None, upload_dir: str | None = None) -> None:
             },
         ]
 
+        cat_image_map = {
+            "برنج-ایرانی": ("rice_tarom.jpg", (0.5, 0.45)),
+            "حبوبات": ("legumes.jpg", (0.5, 0.5)),
+            "ادویه-و-چاشنی": ("spices_saffron.jpg", (0.5, 0.5)),
+            "چای-و-دمنوش": ("tea_lahijan.jpg", (0.5, 0.5)),
+        }
         cust_row = conn.execute("SELECT id FROM users WHERE role = 'customer' LIMIT 1").fetchone()
         for idx, pd in enumerate(products_seed):
+            src_name, src_center = cat_image_map.get(pd["cat"], ("rice_tarom.jpg", (0.5, 0.5)))
+            if idx % 2 == 1 and pd["cat"] == "برنج-ایرانی":
+                src_name = "hero_rice.jpg"
+                src_center = (0.75, 0.55)
+            im = _make_sample_image(
+                up_root,
+                f"products/prod_{idx+1}",
+                pd["colors"][0],
+                pd["colors"][1],
+                (800, 600),
+                source_image=src_name,
+                centering=src_center,
+            )
             if conn.execute("SELECT 1 FROM products WHERE slug = ?", (pd["slug"],)).fetchone():
                 continue
             cur = conn.execute(
@@ -344,7 +374,7 @@ def run_seed(db_path: str | None = None, upload_dir: str | None = None) -> None:
                         (vid, stock, stock, ts),
                     )
 
-            im = _make_sample_image(up_root, f"products/prod_{idx+1}", pd["colors"][0], pd["colors"][1], (800, 600))
+            im_unused = im  # already generated above
             conn.execute(
                 """
                 INSERT INTO product_images (product_id, file_path, thumb_path, webp_path, alt_text, is_cover, sort_order, width, height, created_at)
@@ -371,9 +401,9 @@ def run_seed(db_path: str | None = None, upload_dir: str | None = None) -> None:
                 recalculate_product_rating(conn, pid)
 
         # 6. Hero Banners
+        b1 = _make_sample_image(up_root, "banners/hero_1", (27, 59, 38), (199, 132, 36), (1200, 440), source_image="hero_rice.jpg", centering=(0.5, 0.55))
+        b2 = _make_sample_image(up_root, "banners/hero_2", (110, 79, 50), (45, 90, 60), (1200, 440), source_image="spices_saffron.jpg", centering=(0.5, 0.5))
         if conn.execute("SELECT COUNT(*) FROM banners").fetchone()[0] == 0:
-            b1 = _make_sample_image(up_root, "banners/hero_1", (20, 74, 48), (217, 119, 6), (1200, 420))
-            b2 = _make_sample_image(up_root, "banners/hero_2", (140, 65, 20), (27, 94, 63), (1200, 420))
             conn.execute(
                 """
                 INSERT INTO banners (title, subtitle, image_path, link_url, button_text, placement, sort_order, is_active, created_at, updated_at)

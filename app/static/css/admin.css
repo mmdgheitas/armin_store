@@ -14,15 +14,15 @@
 }
 
 :root {
-  --primary: #1b5e3f;
-  --primary-dark: #13442d;
-  --accent: #d97706;
-  --danger: #dc2626;
-  --bg: #f4f5f7;
+  --primary: #2e5d3b;
+  --primary-dark: #1d3e26;
+  --accent: #c68422;
+  --danger: #b83227;
+  --bg: #faf5ea;
   --surface: #ffffff;
-  --border: #e5e7eb;
-  --text: #111827;
-  --muted: #6b7280;
+  --border: #e4d9c3;
+  --text: #241d15;
+  --muted: #6e6354;
 }
 
 * { box-sizing: border-box; }
@@ -43,8 +43,8 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
   min-height: 100vh;
 }
 .admin-sidebar {
-  background: #13231b;
-  color: #e5e7eb;
+  background: linear-gradient(180deg, #1b3824 0%, #14291b 100%);
+  color: #ede6d6;
   padding: 18px 12px;
   display: flex;
   flex-direction: column;
