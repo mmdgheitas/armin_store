@@ -6,11 +6,15 @@ import re
 import secrets
 from html import escape
 from html.parser import HTMLParser
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import jdatetime
 
-TEHRAN_TZ = ZoneInfo("Asia/Tehran")
+try:
+    TEHRAN_TZ: dt.tzinfo = ZoneInfo("Asia/Tehran")
+except (ZoneInfoNotFoundError, ModuleNotFoundError):
+    # Iran permanently uses UTC+03:30 (DST abolished in 2023); fallback for Windows without tzdata
+    TEHRAN_TZ = dt.timezone(dt.timedelta(hours=3, minutes=30), name="Asia/Tehran")
 
 _EN_TO_FA_DIGITS = str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹")
 _FA_AR_TO_EN_DIGITS = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
