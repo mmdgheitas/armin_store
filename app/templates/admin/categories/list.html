@@ -1,0 +1,87 @@
+{% extends "admin/base.html" %}
+{% block title %}دسته‌بندی‌ها{% endblock %}
+{% block page_title %}دسته‌بندی‌ها{% endblock %}
+{% block page_sub %}{{ categories|length }} دسته{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>دسته‌بندی‌ها</h1><p>ساختار درختی دسته‌ها (حداکثر دو سطح توصیه می‌شود)</p></div>
+  <div class="page-actions"><a class="btn btn-outline" href="{{ url_for('admin.products') }}">محصولات</a></div>
+</div>
+
+<div class="dashboard-grid">
+  <div class="panel">
+    <div class="panel-head"><h2>فهرست دسته‌ها</h2></div>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>نام</th><th>نامک</th><th>والد</th><th>محصولات</th><th>ترتیب</th><th>وضعیت</th><th>عملیات</th></tr></thead>
+        <tbody>
+          {% for category in categories %}
+            <tr>
+              <td>
+                <strong>{{ category.name }}</strong>
+                <details class="mt-1">
+                  <summary class="tiny" style="cursor:pointer">ویرایش</summary>
+                  <form method="post" action="{{ url_for('admin.category_save', category_id=category.id) }}" class="mt-1" style="min-width:260px">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="field"><label>نام</label><input type="text" name="name" value="{{ category.name }}" required maxlength="150"></div>
+                    <div class="field mt-1"><label>نامک</label><input type="text" name="slug" value="{{ category.slug }}" dir="ltr"></div>
+                    <div class="field mt-1">
+                      <label>والد</label>
+                      <select name="parent_id">
+                        <option value="">— بدون والد —</option>
+                        {% for option in categories if option.id != category.id %}
+                          <option value="{{ option.id }}" {{ 'selected' if category.parent_id == option.id }}>{{ option.name }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="field mt-1"><label>ترتیب</label><input type="number" name="sort_order" value="{{ category.sort_order }}"></div>
+                    <div class="field mt-1"><label>توضیح</label><textarea name="description" style="min-height:60px">{{ category.description or '' }}</textarea></div>
+                    <label class="checkbox-line mt-1"><input type="checkbox" name="is_active" value="1" {{ 'checked' if category.is_active }}> فعال</label>
+                    <button type="submit" class="btn btn-primary btn-sm mt-1">ذخیره</button>
+                  </form>
+                </details>
+              </td>
+              <td class="tiny" dir="ltr">{{ category.slug }}</td>
+              <td class="tiny">{{ category.parent.name if category.parent else '—' }}</td>
+              <td class="num">{{ category.product_count|number }}</td>
+              <td class="num">{{ category.sort_order|number }}</td>
+              <td>{% if category.is_active %}<span class="badge badge-success">فعال</span>{% else %}<span class="badge badge-muted">غیرفعال</span>{% endif %}</td>
+              <td>
+                <form method="post" action="{{ url_for('admin.category_delete', category_id=category.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-danger btn-sm" data-confirm="دسته حذف شود؟">حذف</button>
+                </form>
+              </td>
+            </tr>
+          {% else %}
+            <tr><td colspan="7"><div class="empty"><p>دسته‌بندی‌ای ثبت نشده است.</p></div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head"><h2>افزودن دسته‌بندی</h2></div>
+    <div class="panel-body">
+      <form method="post" action="{{ url_for('admin.category_save') }}" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="field"><label for="name">نام <span class="req">*</span></label><input type="text" id="name" name="name" required maxlength="150"></div>
+        <div class="field mt-1"><label for="slug">نامک</label><input type="text" id="slug" name="slug" dir="ltr" placeholder="auto"></div>
+        <div class="field mt-1">
+          <label for="parent_id">والد</label>
+          <select id="parent_id" name="parent_id">
+            <option value="">— بدون والد —</option>
+            {% for category in categories %}<option value="{{ category.id }}">{{ category.name }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field mt-1"><label for="sort_order">ترتیب</label><input type="number" id="sort_order" name="sort_order" value="0"></div>
+        <div class="field mt-1"><label for="description">توضیح</label><textarea id="description" name="description" style="min-height:70px"></textarea></div>
+        <div class="field mt-1"><label for="image">تصویر</label><input type="file" id="image" name="image" accept="image/*"></div>
+        <label class="checkbox-line mt-1"><input type="checkbox" name="is_active" value="1" checked> فعال باشد</label>
+        <button type="submit" class="btn btn-primary btn-block mt-2">ذخیره دسته</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

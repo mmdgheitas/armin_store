@@ -1,0 +1,63 @@
+{% extends "admin/base.html" %}
+{% from "_macros.html" import pagination %}
+{% block title %}وبلاگ{% endblock %}
+{% block page_title %}وبلاگ{% endblock %}
+{% block page_sub %}{{ page.total|number }} مقاله{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>مقالات وبلاگ</h1><p>مدیریت محتوا و سئوی مقالات</p></div>
+  <div class="page-actions"><a class="btn btn-primary" href="{{ url_for('admin.blog_save') }}">➕ مقاله جدید</a></div>
+</div>
+<div class="panel">
+  <div class="panel-head">
+    <form method="get" class="filter-bar">
+      <div class="field">
+        <label>وضعیت</label>
+        <select name="status" onchange="this.form.submit()">
+          <option value="">همه</option>
+          <option value="published" {{ 'selected' if status == 'published' }}>منتشرشده</option>
+          <option value="draft" {{ 'selected' if status == 'draft' }}>پیش‌نویس</option>
+        </select>
+      </div>
+    </form>
+  </div>
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>مقاله</th><th>دسته</th><th>نویسنده</th><th>وضعیت</th><th>بازدید</th><th>انتشار</th><th>عملیات</th></tr></thead>
+      <tbody>
+        {% for post in page.items %}
+          <tr>
+            <td>
+              <div class="d-flex gap-1" style="align-items:center;gap:10px">
+                {% if post.cover_image %}<img src="{{ media_url(post.cover_image) }}" alt="" style="width:52px;height:40px;object-fit:cover;border-radius:8px">{% endif %}
+                <div>
+                  <strong>{{ post.title }}</strong>
+                  <div class="tiny muted" dir="ltr">{{ post.slug }}</div>
+                </div>
+              </div>
+            </td>
+            <td class="tiny">{{ post.category.name if post.category else '—' }}</td>
+            <td class="tiny">{{ post.author.full_name if post.author else '—' }}</td>
+            <td>{% if post.status == 'published' %}<span class="badge badge-success">منتشرشده</span>{% else %}<span class="badge badge-muted">پیش‌نویس</span>{% endif %}</td>
+            <td class="num">{{ post.views|number }}</td>
+            <td class="tiny">{{ post.published_at|jdatetime if post.published_at else '—' }}</td>
+            <td>
+              <div class="actions">
+                {% if post.status == 'published' %}<a class="btn btn-outline btn-sm" href="{{ url_for('storefront.blog_detail', slug=post.slug) }}" target="_blank">مشاهده</a>{% endif %}
+                <a class="btn btn-outline btn-sm" href="{{ url_for('admin.blog_save', post_id=post.id) }}">ویرایش</a>
+                <form method="post" action="{{ url_for('admin.blog_delete', post_id=post.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-danger btn-sm" data-confirm="مقاله حذف شود؟">حذف</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="7"><div class="empty"><p>مقاله‌ای ثبت نشده است.</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {{ pagination(page) }}
+</div>
+{% endblock %}

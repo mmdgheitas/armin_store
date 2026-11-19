@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}ثبت‌نام — {{ store_name }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card wide">
+    <div class="auth-head">
+      <a class="brand" href="{{ url_for('storefront.home') }}"><span class="brand-logo">{{ store_name[:1] }}</span><span>{{ store_name }}</span></a>
+      <h1>ساخت حساب کاربری</h1>
+      <p>در کمتر از یک دقیقه ثبت‌نام کنید و خرید خود را آغاز کنید.</p>
+    </div>
+
+    <form method="post" action="{{ url_for('auth.register') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+      <div class="form-grid">
+        <div class="field full">
+          <label for="full_name">نام و نام خانوادگی <span class="req">*</span></label>
+          <input type="text" id="full_name" name="full_name" value="{{ form.get('full_name', '') }}" required minlength="3" maxlength="150" autocomplete="name">
+        </div>
+        <div class="field">
+          <label for="mobile">شماره موبایل <span class="req">*</span></label>
+          <input type="tel" id="mobile" name="mobile" value="{{ form.get('mobile', '') }}" required pattern="09[0-9]{9}" maxlength="11" placeholder="09121234567" autocomplete="tel" inputmode="numeric">
+        </div>
+        <div class="field">
+          <label for="email">ایمیل <span class="text-muted tiny">(اختیاری)</span></label>
+          <input type="email" id="email" name="email" value="{{ form.get('email', '') }}" maxlength="190" autocomplete="email">
+        </div>
+        <div class="field">
+          <label for="password">رمز عبور <span class="req">*</span></label>
+          <input type="password" id="password" name="password" required minlength="{{ settings.password_min_length }}" autocomplete="new-password">
+          <small class="hint">حداقل {{ settings.password_min_length }} کاراکتر شامل حرف و عدد.</small>
+        </div>
+        <div class="field">
+          <label for="password_confirm">تکرار رمز عبور <span class="req">*</span></label>
+          <input type="password" id="password_confirm" name="password_confirm" required autocomplete="new-password">
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block mt-3">ثبت‌نام</button>
+      <p class="tiny text-muted text-center mt-1">با ثبت‌نام، <a href="{{ url_for('storefront.static_page', slug='terms') }}">قوانین</a> و <a href="{{ url_for('storefront.static_page', slug='privacy') }}">حریم خصوصی</a> را می‌پذیرید.</p>
+    </form>
+
+    <div class="auth-footer">قبلاً ثبت‌نام کرده‌اید؟ <a href="{{ url_for('auth.login', next=next) }}">وارد شوید</a></div>
+  </div>
+</div>
+{% endblock %}

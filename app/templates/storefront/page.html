@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}{{ page.seo_title or page.title }} — {{ store_name }}{% endblock %}
+{% block description %}{{ page.seo_description or page.title }}{% endblock %}
+{% block canonical %}<link rel="canonical" href="{{ url_for('storefront.static_page', slug=page.slug, _external=True) }}">{% endblock %}
+{% block content %}
+<div class="container">
+  <ol class="breadcrumb">
+    <li><a href="{{ url_for('storefront.home') }}">خانه</a></li>
+    <li>{{ page.title }}</li>
+  </ol>
+  <div class="card" style="margin:16px 0 40px">
+    <h1>{{ page.title }}</h1>
+    <div class="article-content">{{ page.content|safe }}</div>
+  </div>
+</div>
+{% endblock %}

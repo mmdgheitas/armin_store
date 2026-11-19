@@ -1,0 +1,29 @@
+{% extends "admin/base.html" %}
+{% block title %}مشتری جدید{% endblock %}
+{% block page_title %}مشتری جدید{% endblock %}
+{% block page_sub %}ایجاد حساب مشتری توسط پشتیبانی{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>مشتری جدید</h1><p>سفارش‌های مهمان با همین موبایل به حساب متصل می‌شوند.</p></div>
+  <div class="page-actions"><a class="btn btn-outline" href="{{ url_for('admin.customers') }}">بازگشت</a></div>
+</div>
+<div class="panel" style="max-width:720px">
+  <div class="panel-body">
+    <form method="post" action="{{ url_for('admin.customer_create') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-grid">
+        <div class="field full"><label for="full_name">نام و نام خانوادگی <span class="req">*</span></label><input type="text" id="full_name" name="full_name" required minlength="3" maxlength="150"></div>
+        <div class="field"><label for="mobile">موبایل <span class="req">*</span></label><input type="tel" id="mobile" name="mobile" required pattern="09[0-9]{9}" maxlength="11" dir="ltr"></div>
+        <div class="field"><label for="email">ایمیل</label><input type="email" id="email" name="email" maxlength="190" dir="ltr"></div>
+        <div class="field full">
+          <label for="password">رمز عبور <span class="req">*</span></label>
+          <input type="text" id="password" name="password" required minlength="8">
+          <small class="hint">رمز را به مشتری اعلام کنید؛ در اولین ورود باید تغییر دهد.</small>
+        </div>
+      </div>
+      <label class="checkbox-line mt-2"><input type="checkbox" name="is_verified" value="1"> شماره موبایل تأییدشده در نظر گرفته شود</label>
+      <button type="submit" class="btn btn-primary mt-2">ایجاد مشتری</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% from "_macros.html" import product_card, stars %}
+{% block title %}{{ settings.seo_default_title or store_name }} — {{ settings.store_slogan }}{% endblock %}
+{% block content %}
+<section class="section-tight">
+  <div class="container">
+    <div class="hero">
+      <div>
+        <span class="hero-badge">✨ {{ settings.store_slogan }}</span>
+        <h1>خرید آسان، تحویل مطمئن<br>از {{ store_name }}</h1>
+        <p>{{ settings.store_description }}</p>
+        <div class="hero-actions">
+          <a class="btn btn-primary btn-lg" href="{{ url_for('storefront.product_list') }}">مشاهده فروشگاه</a>
+          {% if discounted %}
+            <a class="btn btn-outline btn-lg" href="{{ url_for('storefront.product_list', sort='discount') }}">تخفیف‌های ویژه</a>
+          {% endif %}
+        </div>
+      </div>
+      <div class="hero-visual">
+        <div class="hero-tile"><strong>{{ stats.products|number }}</strong><span>محصول فعال</span></div>
+        <div class="hero-tile"><strong>{{ stats.categories|number }}</strong><span>دسته‌بندی</span></div>
+        <div class="hero-tile"><strong>۲۴/۷</strong><span>پشتیبانی آنلاین</span></div>
+        <div class="hero-tile"><strong>ضمانت</strong><span>اصالت کالا</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% if categories %}
+<section class="section-tight">
+  <div class="container">
+    <div class="section-head">
+      <h2>دسته‌بندی‌ها</h2>
+      <a href="{{ url_for('storefront.product_list') }}">همه محصولات ←</a>
+    </div>
+    <div class="category-strip">
+      {% for cat in categories %}
+        <a class="category-card" href="{{ url_for('storefront.category_page', slug=cat.slug) }}">
+          <span class="category-icon">
+            {% if cat.image_url %}<img src="{{ cat.image_url }}" alt="{{ cat.name }}">{% else %}📦{% endif %}
+          </span>
+          <span>
+            <strong>{{ cat.name }}</strong>
+            <span>{{ cat.product_count|number }} کالا</span>
+          </span>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if discounted %}
+<section class="section-tight">
+  <div class="container">
+    <div class="section-head">
+      <h2>تخفیف‌های شگفت‌انگیز</h2>
+      <a href="{{ url_for('storefront.product_list', sort='discount') }}">همه تخفیف‌ها ←</a>
+    </div>
+    <div class="product-grid">
+      {% for product in discounted %}{{ product_card(product) }}{% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if featured %}
+<section class="section-tight">
+  <div class="container">
+    <div class="section-head">
+      <h2>پیشنهاد ویژه فروشگاه</h2>
+      <a href="{{ url_for('storefront.product_list', featured='1') }}">مشاهده همه ←</a>
+    </div>
+    <div class="product-grid">
+      {% for product in featured %}{{ product_card(product) }}{% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if newest %}
+<section class="section-tight">
+  <div class="container">
+    <div class="section-head">
+      <h2>جدیدترین محصولات</h2>
+      <a href="{{ url_for('storefront.product_list', sort='newest') }}">همه محصولات ←</a>
+    </div>
+    <div class="product-grid">
+      {% for product in newest %}{{ product_card(product) }}{% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if bestsellers %}
+<section class="section-tight">
+  <div class="container">
+    <div class="section-head">
+      <h2>پرفروش‌ترین‌ها</h2>
+      <a href="{{ url_for('storefront.product_list', sort='bestseller') }}">مشاهده همه ←</a>
+    </div>
+    <div class="product-grid">
+      {% for product in bestsellers %}{{ product_card(product) }}{% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<section class="section-tight">
+  <div class="container">
+    <div class="trust-grid">
+      <div class="trust-card">
+        <span class="icon">🚚</span>
+        <div><strong>ارسال سریع و مطمئن</strong><span>ارسال به سراسر کشور با روش‌های متنوع</span></div>
+      </div>
+      <div class="trust-card">
+        <span class="icon">🔒</span>
+        <div><strong>پرداخت امن</strong><span>درگاه بانکی معتبر با تأیید سرور</span></div>
+      </div>
+      <div class="trust-card">
+        <span class="icon">♻️</span>
+        <div><strong>۷ روز ضمانت بازگشت</strong><span>بازگشت کالا طبق قوانین فروشگاه</span></div>
+      </div>
+      <div class="trust-card">
+        <span class="icon">🎧</span>
+        <div><strong>پشتیبانی واقعی</strong><span>پاسخ‌گویی از طریق تیکت و تلفن</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% if videos %}
+<section class="section-tight">
+  <div class="container">
+    <div class="section-head"><h2>ویدئوی مشتریان</h2></div>
+    <div class="video-grid">
+      {% for video in videos %}
+        <div class="video-card">
+          <video controls preload="metadata" src="{{ url_for('storefront.customer_video', video_id=video.id) }}"></video>
+          <p>{{ video.product.name if video.product else 'ویدئوی مشتری' }}</p>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if posts %}
+<section class="section-tight">
+  <div class="container">
+    <div class="section-head">
+      <h2>آخرین مطالب وبلاگ</h2>
+      <a href="{{ url_for('storefront.blog_list') }}">همه مقاله‌ها ←</a>
+    </div>
+    <div class="blog-grid">
+      {% for post in posts %}
+        <article class="blog-card">
+          <a class="blog-cover" href="{{ url_for('storefront.blog_detail', slug=post.slug) }}">
+            {% if post.cover_image %}<img src="{{ media_url(post.cover_image) }}" alt="{{ post.title }}" loading="lazy">{% endif %}
+          </a>
+          <div class="blog-body">
+            <div class="blog-meta">{{ post.published_at|jdate if post.published_at else post.created_at|jdate }}</div>
+            <h3><a href="{{ url_for('storefront.blog_detail', slug=post.slug) }}">{{ post.title }}</a></h3>
+            <p>{{ post.excerpt or (post.content|striptags|truncate(120)) }}</p>
+            <a href="{{ url_for('storefront.blog_detail', slug=post.slug) }}" class="small">ادامه مطلب ←</a>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

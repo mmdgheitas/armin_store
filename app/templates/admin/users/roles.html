@@ -1,0 +1,83 @@
+{% extends "admin/base.html" %}
+{% block title %}نقش‌ها و مجوزها{% endblock %}
+{% block page_title %}نقش‌ها و مجوزها{% endblock %}
+{% block page_sub %}{{ roles|length }} نقش{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>نقش‌ها و مجوزها</h1><p>دسترسی هر نقش را با تیک‌زدن مجوزها تعیین کنید. نقش «مدیر کل» همیشه همه دسترسی‌ها را دارد.</p></div>
+  <div class="page-actions"><a class="btn btn-outline" href="{{ url_for('admin.users') }}">کاربران پنل</a></div>
+</div>
+
+<div class="dashboard-grid">
+  <div class="panel">
+    <div class="panel-head"><h2>نقش‌های موجود</h2></div>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>نقش</th><th>شناسه</th><th>تعداد کاربر</th><th>تعداد مجوز</th><th>عملیات</th></tr></thead>
+        <tbody>
+          {% for role in roles %}
+            <tr>
+              <td>
+                <strong>{{ role.title }}</strong>
+                <details class="mt-1">
+                  <summary class="tiny" style="cursor:pointer">ویرایش مجوزها</summary>
+                  <form method="post" action="{{ url_for('admin.role_save', role_id=role.id) }}" class="mt-1">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="field"><label>عنوان</label><input type="text" name="title" value="{{ role.title }}" maxlength="120"></div>
+                    {% if role.name != 'super_admin' %}
+                      <div class="checkbox-grid mt-1">
+                        {% set role_keys = role.permission_keys %}
+                        {% for key, label in permissions %}
+                          <label class="checkbox-line"><input type="checkbox" name="permissions[]" value="{{ key }}" {{ 'checked' if key in role_keys }}> {{ label }}</label>
+                        {% endfor %}
+                      </div>
+                    {% else %}
+                      <div class="alert alert-info mt-1 mb-0">این نقش به‌صورت سیستمی همه مجوزها را دارد.</div>
+                    {% endif %}
+                    <button type="submit" class="btn btn-primary btn-sm mt-1">ذخیره نقش</button>
+                  </form>
+                </details>
+              </td>
+              <td class="tiny" dir="ltr">{{ role.name }}</td>
+              <td class="num">{{ counts.get(role.id, 0)|number }}</td>
+              <td class="num">{% if role.name == 'super_admin' %}{{ permissions|length }}{% else %}{{ role.permissions|length }}{% endif %}</td>
+              <td>
+                {% if role.name != 'super_admin' %}
+                  <form method="post" action="{{ url_for('admin.role_delete', role_id=role.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="btn btn-danger btn-sm" data-confirm="نقش حذف شود؟">حذف</button>
+                  </form>
+                {% else %}
+                  <span class="badge badge-info">سیستمی</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% else %}
+            <tr><td colspan="5"><div class="empty"><p>نقشی ثبت نشده است.</p></div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head"><h2>نقش جدید</h2></div>
+    <div class="panel-body">
+      <form method="post" action="{{ url_for('admin.role_save') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="field"><label for="name">شناسه نقش (انگلیسی) <span class="req">*</span></label><input type="text" id="name" name="name" required dir="ltr" placeholder="marketing_manager" pattern="[a-z_]+"></div>
+        <div class="field mt-1"><label for="title">عنوان نمایشی</label><input type="text" id="title" name="title" maxlength="120" placeholder="مدیر بازاریابی"></div>
+        <div class="field mt-1">
+          <label>مجوزها</label>
+          <div class="checkbox-grid">
+            {% for key, label in permissions %}
+              <label class="checkbox-line"><input type="checkbox" name="permissions[]" value="{{ key }}"> {{ label }}</label>
+            {% endfor %}
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block mt-2">➕ ایجاد نقش</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

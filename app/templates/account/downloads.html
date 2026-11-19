@@ -1,0 +1,53 @@
+{% extends "account/base.html" %}
+{% from "_macros.html" import empty_state %}
+{% block title %}دانلودهای من — {{ store_name }}{% endblock %}
+{% block account_content %}
+<div class="page-header" style="padding-top:0">
+  <h1>فایل‌های دانلودی</h1>
+  <p>فایل‌های خریداری‌شده یا لایسنس محصولات دیجیتال</p>
+</div>
+
+{% if items %}
+  <div class="card" style="padding:0">
+    {% for item in items %}
+      {% set state = states.get(item.id, {}) %}
+      <div class="cart-item">
+        <div class="cart-thumb">
+          {% if item.product and item.product.image_url %}<img src="{{ item.product.image_url }}" alt="{{ item.product_name_snapshot }}">{% else %}<div class="thumb-placeholder">💾</div>{% endif %}
+        </div>
+        <div class="cart-info">
+          <h4>{{ item.product_name_snapshot }}</h4>
+          <div class="meta">
+            سفارش <a href="{{ url_for('account.order_detail', order_number=item.order.order_number) }}">{{ item.order.order_number }}</a>
+            — {{ item.order.paid_at|jdate if item.order.paid_at else item.order.created_at|jdate }}
+          </div>
+          <div class="meta mt-1">
+            {% if state.can_download %}
+              <span class="text-success">{{ state.message }}</span>
+              {% if state.remaining is not none and state.delivery_type == 'file' %}<span class="text-muted">— {{ state.remaining|number }} دانلود باقی‌مانده</span>{% endif %}
+            {% else %}
+              <span class="text-muted">{{ state.message or 'در حال آماده‌سازی…' }}</span>
+            {% endif %}
+          </div>
+          {% if state.license %}
+            <div class="meta mt-1">کد لایسنس: <code dir="ltr">{{ state.license }}</code></div>
+          {% endif %}
+          {% if state.external_url %}
+            <div class="meta mt-1 tiny text-muted" dir="ltr">{{ state.external_url }}</div>
+          {% endif %}
+        </div>
+        <div>
+          {% if state.can_download %}
+            <a class="btn btn-primary btn-sm" href="{{ download_url(item) }}">
+              {% if state.delivery_type == 'link' %}دریافت لینک{% elif state.delivery_type == 'license' %}مشاهده لایسنس{% else %}دانلود فایل{% endif %}
+            </a>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  {{ empty_state('💾', 'فایلی برای دانلود ندارید', 'با خرید محصولات دانلودی، فایل‌ها در این بخش قرار می‌گیرند.') }}
+  <div class="text-center"><a class="btn btn-primary" href="{{ url_for('storefront.product_list', digital='1') }}">محصولات دانلودی</a></div>
+{% endif %}
+{% endblock %}

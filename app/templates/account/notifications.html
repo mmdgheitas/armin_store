@@ -1,0 +1,40 @@
+{% extends "account/base.html" %}
+{% from "_macros.html" import empty_state %}
+{% block title %}اعلان‌ها — {{ store_name }}{% endblock %}
+{% block account_content %}
+<div class="page-header" style="padding-top:0">
+  <div class="d-flex justify-between items-center flex-wrap gap-2" style="padding-top:0">
+    <div><h1>اعلان‌ها</h1><p>اطلاع‌رسانی‌های سفارش و حساب شما</p></div>
+    <form method="post" action="{{ url_for('account.notifications_read') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-outline btn-sm">علامت‌گذاری همه به‌عنوان خوانده‌شده</button>
+    </form>
+  </div>
+</div>
+
+{% if notifications %}
+  <div class="card" style="padding:0">
+    {% for item in notifications %}
+      <div style="padding:14px 16px;border-bottom:1px solid var(--border);{{ 'background:var(--primary-50)' if not item.is_read }}">
+        <div class="d-flex justify-between gap-2 flex-wrap">
+          <strong class="small">{{ item.title }}</strong>
+          <span class="tiny text-muted">{{ item.created_at|jdatetime }}</span>
+        </div>
+        {% if item.message %}<p class="small mb-1 mt-1">{{ item.message }}</p>{% endif %}
+        <div class="d-flex gap-2 items-center">
+          {% if item.link %}<a class="tiny" href="{{ item.link }}">مشاهده جزئیات ←</a>{% endif %}
+          {% if not item.is_read %}
+            <form method="post" action="{{ url_for('account.notifications_read') }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="id" value="{{ item.id }}">
+              <button type="submit" class="cart-item-remove">خوانده شد</button>
+            </form>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  {{ empty_state('🔔', 'اعلانی ندارید', 'اطلاع‌رسانی‌های سفارش‌ها در این بخش نمایش داده می‌شود.') }}
+{% endif %}
+{% endblock %}

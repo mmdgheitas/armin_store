@@ -1,0 +1,101 @@
+{% extends "admin/base.html" %}
+{% block title %}تنظیمات درگاه پرداخت{% endblock %}
+{% block page_title %}درگاه پرداخت{% endblock %}
+{% block page_sub %}BitPay{% endblock %}
+{% block content %}
+{% set keys = ['payment_online_enabled', 'bitpay_enabled', 'bitpay_api_key', 'bitpay_base_url', 'bitpay_token_path', 'bitpay_verify_path', 'bitpay_gateway_url', 'bitpay_amount_multiplier', 'bitpay_test_mode', 'payment_timeout_minutes', 'payment_success_note'] %}
+<div class="page-head">
+  <div><h1>تنظیمات درگاه پرداخت</h1><p>اتصال به درگاه BitPay با تأیید سمت سرور</p></div>
+  <div class="page-actions">
+    <a class="btn btn-outline" href="{{ url_for('admin.payments') }}">تراکنش‌ها</a>
+    <form method="post" action="{{ url_for('admin.payment_check') }}" class="inline-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn-outline">بررسی پیکربندی</button>
+    </form>
+  </div>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card {{ 'accent' if configured else '' }}">
+    <div class="top"><span class="label">وضعیت درگاه</span><span class="icon">💳</span></div>
+    <div class="value" style="font-size:1rem">{{ 'فعال' if configured else 'غیرفعال / ناقص' }}</div>
+    <div class="hint">{{ 'کلید API ثبت شده' if key_present else 'کلید API ثبت نشده' }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="top"><span class="label">حالت آزمایشی</span><span class="icon">🧪</span></div>
+    <div class="value" style="font-size:1rem">{{ 'فعال' if test_mode else 'خاموش' }}</div>
+    <div class="hint">{{ 'پرداخت واقعی انجام نمی‌شود' if test_mode else 'تراکنش‌ها واقعی هستند' }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="top"><span class="label">ضریب مبلغ</span><span class="icon">✖️</span></div>
+    <div class="value">{{ values.get('bitpay_amount_multiplier', 10)|number }}</div>
+    <div class="hint">تبدیل تومان به واحد درگاه</div>
+  </div>
+</div>
+
+{% if test_mode %}
+  <div class="alert alert-warning">حالت آزمایشی فعال است: پرداخت‌ها در صفحه درگاه آزمایشی داخلی شبیه‌سازی می‌شوند و هیچ تراکنش واقعی ثبت نمی‌شود.</div>
+{% endif %}
+<div class="alert alert-info">
+  مسیرهای API طبق مستندات رسمی BitPay قابل تنظیم هستند و به‌صورت پیش‌فرض مقداردهی شده‌اند. برای پرداخت واقعی، کلید API را وارد کرده و حالت آزمایشی را خاموش کنید. صحت تراکنش همیشه با استعلام مستقیم از درگاه (Verify) بررسی می‌شود، نه با پارامترهای Callback.
+</div>
+
+<div class="panel">
+  <div class="panel-head"><h2>پیکربندی</h2></div>
+  <div class="panel-body">
+    <form method="post" action="{{ url_for('admin.payment_settings') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-grid">
+        {% for key in keys %}
+          {% set defn = defs.get(key) %}
+          {% if defn %}
+            <div class="field {{ 'full' if defn.type == 'text' }}">
+              {% if defn.type == 'bool' %}
+                <label class="checkbox-line"><input type="checkbox" name="{{ key }}" value="1" {{ 'checked' if values.get(key) }}> {{ defn.label }}</label>
+              {% else %}
+                <label for="{{ key }}">{{ defn.label }}</label>
+                {% if defn.type == 'text' %}
+                  <textarea id="{{ key }}" name="{{ key }}" style="min-height:70px">{{ values.get(key, '') }}</textarea>
+                {% elif defn.type == 'int' %}
+                  <input type="number" id="{{ key }}" name="{{ key }}" value="{{ values.get(key, 0) }}" min="0">
+                {% elif defn.sensitive %}
+                  <input type="password" id="{{ key }}" name="{{ key }}" value="{{ values.get(key, '') }}" autocomplete="new-password">
+                  <small class="hint">کلید API فقط ماسک‌شده نمایش داده می‌شود.</small>
+                {% else %}
+                  <input type="text" id="{{ key }}" name="{{ key }}" value="{{ values.get(key, '') }}" dir="{{ 'rtl' if key == 'payment_success_note' else 'ltr' }}">
+                {% endif %}
+              {% endif %}
+              {% if defn.help %}<small class="hint">{{ defn.help }}</small>{% endif %}
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">💾 ذخیره تنظیمات</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-head"><h2>آخرین تراکنش‌ها</h2><a class="btn btn-outline btn-sm" href="{{ url_for('admin.payments') }}">همه</a></div>
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>شناسه</th><th>سفارش</th><th>مبلغ</th><th>وضعیت</th><th>زمان</th></tr></thead>
+      <tbody>
+        {% for payment in payments %}
+          <tr>
+            <td><a href="{{ url_for('admin.payment_detail', payment_id=payment.id) }}">{{ payment.id }}</a></td>
+            <td>{{ payment.order.order_number }}</td>
+            <td class="num">{{ payment.amount|money }}</td>
+            <td><span class="badge {{ 'badge-success' if payment.status == 'successful' else ('badge-danger' if payment.status == 'failed' else 'badge-warning') }}">{{ payment_status_labels.get(payment.status, payment.status) }}</span></td>
+            <td class="tiny">{{ payment.created_at|jdatetime }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="5"><div class="empty"><p>تراکنشی ثبت نشده است.</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

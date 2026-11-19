@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ code }} — {{ title }}</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+<body style="background:#f6f8fb">
+  <main class="container">
+    <div class="result-card" style="max-width:560px">
+      <div class="result-icon {{ 'pending' if code == 404 else 'failed' }}" style="font-size:1.6rem">{{ code }}</div>
+      <h1>{{ title }}</h1>
+      <p>{{ message }}</p>
+      <div class="result-actions">
+        <a class="btn btn-primary" href="{{ url_for('storefront.home') }}">بازگشت به صفحه اصلی</a>
+        <a class="btn btn-outline" href="{{ url_for('storefront.product_list') }}">فروشگاه</a>
+        <a class="btn btn-ghost" href="javascript:history.back()">صفحه قبل</a>
+      </div>
+      {% if extra and extra.get('request_id') %}<p class="tiny text-muted mt-2">شناسه پیگیری: {{ extra.get('request_id') }}</p>{% endif %}
+    </div>
+  </main>
+</body>
+</html>

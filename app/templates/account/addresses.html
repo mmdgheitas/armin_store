@@ -1,0 +1,81 @@
+{% extends "account/base.html" %}
+{% block title %}آدرس‌های من — {{ store_name }}{% endblock %}
+{% block account_content %}
+<div class="page-header" style="padding-top:0">
+  <h1>آدرس‌های من</h1>
+  <p>آدرس‌های ارسال سفارش را مدیریت کنید.</p>
+</div>
+
+<div class="address-grid mb-3">
+  {% for address in addresses %}
+    <div class="address-card {{ 'selected' if address.is_default }}">
+      <div class="d-flex justify-between items-center">
+        <strong>{{ address.recipient_name }}</strong>
+        {% if address.is_default %}<span class="badge badge-primary">پیش‌فرض</span>{% endif %}
+      </div>
+      <p>{{ address.province }}، {{ address.city }} — {{ address.full_address }}</p>
+      <p>{{ address.mobile }}{% if address.postal_code %} — {{ address.postal_code }}{% endif %}</p>
+      <div class="address-actions">
+        {% if not address.is_default %}
+          <form method="post" action="{{ url_for('account.address_default', address_id=address.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="cart-item-remove">پیش‌فرض کن</button>
+          </form>
+        {% endif %}
+        <form method="post" action="{{ url_for('account.address_delete', address_id=address.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="cart-item-remove" data-confirm="این آدرس حذف شود؟">حذف</button>
+        </form>
+      </div>
+      <details class="mt-1">
+        <summary class="tiny" style="cursor:pointer">ویرایش آدرس</summary>
+        <form method="post" action="{{ url_for('account.address_update', address_id=address.id) }}" class="mt-2">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="form-grid">
+            <div class="field"><label>گیرنده</label><input type="text" name="recipient_name" value="{{ address.recipient_name }}" required></div>
+            <div class="field"><label>موبایل</label><input type="tel" name="mobile" value="{{ address.mobile }}" required pattern="09[0-9]{9}" maxlength="11" dir="ltr"></div>
+            <div class="field">
+              <label>استان</label>
+              <select name="province" required>
+                {% for province in provinces %}<option value="{{ province }}" {{ 'selected' if address.province == province }}>{{ province }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="field"><label>شهر</label><input type="text" name="city" value="{{ address.city }}" required></div>
+            <div class="field full"><label>آدرس</label><textarea name="full_address" required style="min-height:70px">{{ address.full_address }}</textarea></div>
+            <div class="field"><label>کد پستی</label><input type="text" name="postal_code" value="{{ address.postal_code or '' }}" maxlength="10" dir="ltr"></div>
+            <div class="field"><label>کد ملی</label><input type="text" name="national_code" value="{{ address.national_code or '' }}" maxlength="10" dir="ltr"></div>
+          </div>
+          <label class="checkbox-row mt-1"><input type="checkbox" name="is_default" value="1" {{ 'checked' if address.is_default }}> آدرس پیش‌فرض</label>
+          <button type="submit" class="btn btn-primary btn-sm mt-2">ذخیره تغییرات</button>
+        </form>
+      </details>
+    </div>
+  {% else %}
+    <div class="empty-state" style="grid-column:1/-1"><div class="icon">📍</div><h3>آدرسی ثبت نشده است</h3><p>با افزودن آدرس، در مرحله پرداخت سریع‌تر خواهید بود.</p></div>
+  {% endfor %}
+</div>
+
+<div class="card">
+  <div class="card-head"><h3>افزودن آدرس جدید</h3></div>
+  <form method="post" action="{{ url_for('account.addresses') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-grid">
+      <div class="field"><label>نام گیرنده <span class="req">*</span></label><input type="text" name="recipient_name" required minlength="3" maxlength="150"></div>
+      <div class="field"><label>شماره موبایل <span class="req">*</span></label><input type="tel" name="mobile" required pattern="09[0-9]{9}" maxlength="11" dir="ltr" placeholder="09121234567"></div>
+      <div class="field">
+        <label>استان <span class="req">*</span></label>
+        <select name="province" required>
+          <option value="">— انتخاب —</option>
+          {% for province in provinces %}<option value="{{ province }}">{{ province }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field"><label>شهر <span class="req">*</span></label><input type="text" name="city" required maxlength="80"></div>
+      <div class="field full"><label>آدرس کامل <span class="req">*</span></label><textarea name="full_address" required minlength="10" maxlength="1000"></textarea></div>
+      <div class="field"><label>کد پستی</label><input type="text" name="postal_code" maxlength="10" dir="ltr"></div>
+      <div class="field"><label>کد ملی</label><input type="text" name="national_code" maxlength="10" dir="ltr"></div>
+    </div>
+    <label class="checkbox-row mt-2"><input type="checkbox" name="is_default" value="1"> آدرس پیش‌فرض باشد</label>
+    <button type="submit" class="btn btn-primary mt-2">ذخیره آدرس</button>
+  </form>
+</div>
+{% endblock %}

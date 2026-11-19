@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% block title %}تسویه حساب — {{ store_name }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block content %}
+{% set a = initial_address or {} %}
+<div class="container">
+  <div class="page-header">
+    <h1>تسویه حساب</h1>
+    <div class="checkout-steps">
+      <span>۱. سبد خرید</span>
+      <span class="active">۲. اطلاعات و پرداخت</span>
+      <span>۳. نتیجه</span>
+    </div>
+  </div>
+
+  {% if errors %}
+    <div class="alert alert-error">
+      <div>{% for error in errors %}<div>{{ error }}</div>{% endfor %}</div>
+    </div>
+  {% endif %}
+
+  <div class="checkout-layout">
+    <form method="post" action="{{ url_for('checkout.index') }}" class="card">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <h2>اطلاعات گیرنده</h2>
+      {% if addresses %}
+        <div class="address-grid mb-3">
+          {% for address in addresses %}
+            <a class="address-card {{ 'selected' if selected_address and selected_address.id == address.id }}"
+               href="{{ url_for('checkout.index', address_id=address.id) }}">
+              <strong>{{ address.recipient_name }}</strong>
+              {% if address.is_default %}<span class="badge badge-primary">پیش‌فرض</span>{% endif %}
+              <p>{{ address.province }}، {{ address.city }} — {{ address.full_address }}</p>
+              <p>{{ address.mobile }}{% if address.postal_code %} — کد پستی: {{ address.postal_code }}{% endif %}</p>
+            </a>
+          {% endfor %}
+        </div>
+        <p class="tiny text-muted">برای ویرایش آدرس‌ها به <a href="{{ url_for('account.addresses') }}">حساب کاربری</a> بروید یا اطلاعات زیر را تغییر دهید.</p>
+      {% endif %}
+
+      <div class="form-grid">
+        <div class="field">
+          <label for="recipient_name">نام و نام خانوادگی گیرنده <span class="req">*</span></label>
+          <input type="text" id="recipient_name" name="recipient_name" value="{{ a.get('recipient_name', '') }}" required minlength="3" maxlength="150" autocomplete="name">
+        </div>
+        <div class="field">
+          <label for="mobile">شماره موبایل <span class="req">*</span></label>
+          <input type="tel" id="mobile" name="mobile" value="{{ a.get('mobile', '') }}" required pattern="09[0-9]{9}" maxlength="11" placeholder="09121234567" autocomplete="tel" inputmode="numeric">
+          <small class="hint">کد پیگیری سفارش به این شماره ارسال می‌شود.</small>
+        </div>
+        <div class="field">
+          <label for="province">استان <span class="req">*</span></label>
+          <select id="province" name="province" required>
+            <option value="">— انتخاب استان —</option>
+            {% for province in provinces %}
+              <option value="{{ province }}" {{ 'selected' if a.get('province') == province }}>{{ province }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="city">شهر <span class="req">*</span></label>
+          <input type="text" id="city" name="city" value="{{ a.get('city', '') }}" required minlength="2" maxlength="80" autocomplete="address-level2">
+        </div>
+        <div class="field full">
+          <label for="full_address">آدرس کامل پستی <span class="req">*</span></label>
+          <textarea id="full_address" name="full_address" required minlength="10" maxlength="1000" placeholder="خیابان، کوچه، پلاک، واحد" autocomplete="street-address">{{ a.get('full_address', '') }}</textarea>
+        </div>
+        <div class="field">
+          <label for="postal_code">کد پستی</label>
+          <input type="text" id="postal_code" name="postal_code" value="{{ a.get('postal_code', '') }}" maxlength="10" pattern="[0-9]{0,10}" inputmode="numeric">
+        </div>
+        <div class="field">
+          <label for="national_code">کد ملی <span class="text-muted tiny">(اختیاری)</span></label>
+          <input type="text" id="national_code" name="national_code" value="{{ a.get('national_code', '') }}" maxlength="10" pattern="[0-9]{0,10}" inputmode="numeric">
+        </div>
+        {% if not current_user %}
+          <div class="field full">
+            <label for="email">ایمیل <span class="text-muted tiny">(اختیاری — برای اطلاع‌رسانی)</span></label>
+            <input type="email" id="email" name="email" maxlength="190" autocomplete="email">
+          </div>
+        {% endif %}
+        <div class="field full">
+          <label for="customer_note">توضیحات سفارش <span class="text-muted tiny">(اختیاری)</span></label>
+          <textarea id="customer_note" name="customer_note" maxlength="1000" style="min-height:70px" placeholder="توضیح یا درخواست خاصی دارید؟"></textarea>
+        </div>
+      </div>
+
+      {% if current_user %}
+        <label class="checkbox-row mt-2"><input type="checkbox" name="save_address" value="1"> این آدرس در حساب من ذخیره شود</label>
+        <label class="checkbox-row mt-1"><input type="checkbox" name="make_default" value="1"> به‌عنوان آدرس پیش‌فرض</label>
+      {% endif %}
+
+      {% if summary.has_physical %}
+        <hr class="divider">
+        <h2>روش ارسال</h2>
+        {% if options %}
+          {% for option in options %}
+            <label class="radio-card">
+              <input type="radio" name="shipping_method_id" value="{{ option.method.id }}" required
+                     {{ 'checked' if summary.shipping_method and summary.shipping_method.id == option.method.id }}
+                     data-cost="{{ option.cost }}" data-free-above="{{ option.method.free_threshold or 0 }}">
+              <span style="flex:1">
+                <strong>{{ option.method.name }}</strong>
+                <span>{{ option.method.description or option.method.type_label }}{% if option.method.estimated_days %} • {{ option.method.estimated_days }}{% endif %}</span>
+              </span>
+              <span class="cost">{{ option.cost|money if option.cost else 'رایگان' }}</span>
+            </label>
+          {% endfor %}
+        {% else %}
+          <div class="alert alert-warning">در حال حاضر روش ارسال فعالی وجود ندارد. لطفاً با پشتیبانی تماس بگیرید.</div>
+        {% endif %}
+      {% endif %}
+
+      <hr class="divider">
+      <h2>روش پرداخت</h2>
+      {% if settings.payment_online_enabled %}
+        <label class="radio-card">
+          <input type="radio" name="payment_method" value="online" checked>
+          <span style="flex:1">
+            <strong>پرداخت آنلاین از طریق درگاه بانکی</strong>
+            <span>انتقال به درگاه امن و پرداخت با کارت بانکی عضو شتاب</span>
+          </span>
+          <span class="cost">🔒</span>
+        </label>
+      {% else %}
+        <div class="alert alert-warning">پرداخت آنلاین در حال حاضر غیرفعال است. سفارش شما ثبت می‌شود و پشتیبانی برای هماهنگی پرداخت تماس می‌گیرد.</div>
+      {% endif %}
+
+      <label class="checkbox-row mt-3">
+        <input type="checkbox" name="accept_terms" value="1" required>
+        <span><a href="{{ url_for('storefront.static_page', slug='terms') }}" target="_blank">قوانین و مقررات</a> فروشگاه را مطالعه کرده و می‌پذیرم.</span>
+      </label>
+
+      <button type="submit" class="btn btn-primary btn-block btn-lg mt-3">ثبت سفارش و پرداخت</button>
+      <p class="tiny text-muted text-center mt-1">با ثبت سفارش، اطلاعات شما فقط برای پردازش سفارش استفاده می‌شود.</p>
+    </form>
+
+    <aside class="card summary-card">
+      <div class="card-head"><h3>خلاصه سفارش</h3></div>
+      <div class="order-items-mini mb-3">
+        {% for item in summary['items'] %}
+          <div class="order-mini-item">
+            {% if item.image_url %}<img src="{{ item.image_url }}" alt="{{ item.product_name }}">{% else %}<div class="thumb-placeholder">🛍️</div>{% endif %}
+            <div class="name">
+              {{ item.product_name }}
+              <div class="tiny text-muted">{{ item.variant_label }}</div>
+            </div>
+            <div class="qty">×{{ item.quantity|number }}</div>
+            <div class="tiny">{{ item.line_total|money }}</div>
+          </div>
+        {% endfor %}
+      </div>
+
+      {% if coupon_code %}
+        <div class="coupon-chip"><span>🎟️ کد تخفیف: {{ coupon_code }}</span>
+          <form method="post" action="{{ url_for('cart.remove_coupon') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit">✕</button>
+          </form>
+        </div>
+      {% else %}
+        <form method="post" action="{{ url_for('cart.apply_coupon') }}" class="coupon-row">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="next" value="{{ url_for('checkout.index') }}">
+          <input type="text" name="code" placeholder="کد تخفیف" maxlength="50">
+          <button type="submit" class="btn btn-outline btn-sm">اعمال</button>
+        </form>
+      {% endif %}
+
+      <div class="summary-row"><span>جمع کالاها</span><span class="value">{{ summary.subtotal|money }}</span></div>
+      {% if summary.discount %}
+        <div class="summary-row"><span>تخفیف</span><span class="value discount">− {{ summary.discount|money }}</span></div>
+      {% endif %}
+      {% if summary.has_physical %}
+        <div class="summary-row"><span>هزینه ارسال</span><span class="value" data-ship-cost>{{ summary.shipping_cost|money if summary.shipping_cost else 'رایگان' }}</span></div>
+      {% endif %}
+      {% if summary.tax_amount %}
+        <div class="summary-row"><span>مالیات ({{ settings.tax_percent }}٪)</span><span class="value">{{ summary.tax_amount|money }}</span></div>
+      {% endif %}
+      <div class="summary-row total">
+        <span>مبلغ قابل پرداخت</span>
+        <span data-total-cost data-subtotal="{{ summary.subtotal }}" data-discount="{{ summary.discount }}">{{ summary.total|money }}</span>
+      </div>
+
+      <a href="{{ url_for('cart.view') }}" class="btn btn-ghost btn-block btn-sm mt-2">بازگشت به سبد خرید</a>
+
+      <div class="trust-row" style="justify-content:center">
+        <span>🔒 اتصال امن</span><span>✅ ضمانت اصالت</span>
+      </div>
+    </aside>
+  </div>
+</div>
+{% endblock %}

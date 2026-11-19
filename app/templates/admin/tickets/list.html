@@ -1,0 +1,55 @@
+{% extends "admin/base.html" %}
+{% from "_macros.html" import pagination %}
+{% block title %}تیکت‌ها{% endblock %}
+{% block page_title %}تیکت‌های پشتیبانی{% endblock %}
+{% block page_sub %}{{ page.total|number }} تیکت{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>تیکت‌های پشتیبانی</h1><p>پاسخ، تغییر وضعیت و پیوست‌ها</p></div>
+</div>
+<div class="panel">
+  <div class="panel-head">
+    <form method="get" class="filter-bar w-100">
+      <div class="field grow"><label>جستجو</label><input type="text" name="q" value="{{ q }}" placeholder="شماره تیکت، موضوع، نام یا موبایل"></div>
+      <div class="field">
+        <label>وضعیت</label>
+        <select name="status">
+          <option value="">همه</option>
+          {% for value, label in statuses %}<option value="{{ value }}" {{ 'selected' if status == value }}>{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label>اولویت</label>
+        <select name="priority">
+          <option value="">همه</option>
+          {% for value, label in priorities %}<option value="{{ value }}" {{ 'selected' if priority == value }}>{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field" style="max-width:120px"><button class="btn btn-primary btn-block">فیلتر</button></div>
+    </form>
+  </div>
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>شماره</th><th>موضوع</th><th>فرستنده</th><th>بخش</th><th>اولویت</th><th>وضعیت</th><th>آخرین فعالیت</th></tr></thead>
+      <tbody>
+        {% for item in page.items %}
+          <tr>
+            <td class="tiny" dir="ltr"><a href="{{ url_for('admin.ticket_detail', ticket_id=item.id) }}">{{ item.ticket_number }}</a></td>
+            <td><a href="{{ url_for('admin.ticket_detail', ticket_id=item.id) }}"><strong>{{ item.subject }}</strong></a></td>
+            <td class="tiny">{{ item.owner_name }}{% if item.guest_mobile %}<div dir="ltr" class="muted">{{ item.guest_mobile }}</div>{% endif %}</td>
+            <td class="tiny">{{ item.department_label }}</td>
+            <td>
+              <span class="badge {{ 'badge-danger' if item.priority in ['high','urgent'] else 'badge-muted' }}">{{ item.priority_label }}</span>
+            </td>
+            <td><span class="badge {{ 'badge-success' if item.status == 'open' else ('badge-info' if item.status == 'answered' else ('badge-warning' if item.status == 'pending' else 'badge-muted')) }}">{{ item.status_label }}</span></td>
+            <td class="tiny">{{ item.updated_at|timeago }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="7"><div class="empty"><p>تیکتی یافت نشد.</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {{ pagination(page) }}
+</div>
+{% endblock %}

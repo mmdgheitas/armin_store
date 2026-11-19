@@ -1,0 +1,22 @@
+# وابستگی‌های اصلی پروژه — سازگار با cPanel Python App (Python 3.9 تا 3.13)
+# نصب از طریق رابط Python App در cPanel یا:
+#   pip install -r requirements.txt
+
+Flask==3.0.3
+Werkzeug==3.0.3
+Flask-SQLAlchemy==3.1.1
+SQLAlchemy==2.0.31
+
+# خروجی Excel
+openpyxl==3.1.2
+
+# خروجی PDF فارسی
+reportlab==4.1.0
+arabic-reshaper==3.0.0
+python-bidi==0.4.2
+
+# بهینه‌سازی و بررسی تصاویر (اختیاری؛ در صورت نصب نبودن، برنامه بدون آن کار می‌کند)
+Pillow==10.3.0
+
+# تست‌ها (اختیاری — برای اجرای tests/)
+pytest==8.2.2

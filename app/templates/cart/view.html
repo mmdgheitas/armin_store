@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% from "_macros.html" import empty_state %}
+{% block title %}سبد خرید — {{ store_name }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="page-header">
+    <h1>سبد خرید</h1>
+    <p>{% if summary.count %}{{ summary.count|number }} کالا در سبد شما{% else %}سبد خرید شما خالی است{% endif %}</p>
+  </div>
+
+  {% if summary.is_empty %}
+    {{ empty_state('🛒', 'سبد خرید شما خالی است', 'از فروشگاه محصولات مورد علاقه خود را انتخاب کنید.') }}
+    <div class="text-center"><a class="btn btn-primary" href="{{ url_for('storefront.product_list') }}">رفتن به فروشگاه</a></div>
+  {% else %}
+    <div class="cart-layout">
+      <div>
+        <div class="card" style="padding:0">
+          {% for item in summary['items'] %}
+            <div class="cart-item">
+              <a class="cart-thumb" href="{{ url_for('storefront.product_detail', slug=item.product_slug) }}">
+                {% if item.image_url %}<img src="{{ item.image_url }}" alt="{{ item.product_name }}">{% else %}<div class="thumb-placeholder">🛍️</div>{% endif %}
+              </a>
+              <div class="cart-info">
+                <h4><a href="{{ url_for('storefront.product_detail', slug=item.product_slug) }}">{{ item.product_name }}</a></h4>
+                <div class="meta">
+                  {% if item.variant_label %}{{ item.variant_label }} — {% endif %}
+                  کد: {{ item.sku }}
+                  {% if item.is_digital %}<span class="badge badge-digital">دانلودی</span>{% endif %}
+                </div>
+                <div class="meta mt-1">
+                  {% if item.is_active %}
+                    {% if item.stock_ok %}
+                      <span class="text-success">موجود</span>
+                    {% else %}
+                      <span class="text-danger">موجودی کافی نیست ({{ item.available|number }} عدد)</span>
+                    {% endif %}
+                  {% else %}
+                    <span class="text-danger">ناموجود / غیرفعال</span>
+                  {% endif %}
+                </div>
+                <div class="d-flex gap-2 items-center mt-1 flex-wrap">
+                  <form method="post" action="{{ url_for('cart.update') }}" class="d-flex gap-1 items-center">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="variant_id" value="{{ item.variant_id }}">
+                    <div class="qty-control" data-qty>
+                      <button type="button" data-qty-plus aria-label="افزایش">+</button>
+                      <input type="number" name="quantity" value="{{ item.quantity }}" min="1" max="{{ item.max_quantity }}" aria-label="تعداد">
+                      <button type="button" data-qty-minus aria-label="کاهش">−</button>
+                    </div>
+                    <button type="submit" class="btn btn-ghost btn-sm">به‌روزرسانی</button>
+                  </form>
+                  <form method="post" action="{{ url_for('cart.remove') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="variant_id" value="{{ item.variant_id }}">
+                    <button type="submit" class="cart-item-remove" data-confirm="این کالا از سبد حذف شود؟">حذف</button>
+                  </form>
+                </div>
+              </div>
+              <div class="cart-line-total">
+                {{ item.line_total|money }}
+                <div class="tiny text-muted" style="font-weight:400">{{ item.unit_price|money }} × {{ item.quantity|number }}</div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+
+        {% if summary.issues %}
+          <div class="alert alert-warning mt-2">
+            <div>
+              {% for issue in summary.issues %}<div>{{ issue }}</div>{% endfor %}
+            </div>
+          </div>
+        {% endif %}
+
+        {% if summary.has_physical and methods %}
+          <div class="card mt-2">
+            <div class="card-head"><h3>روش ارسال</h3></div>
+            <form method="post" action="{{ url_for('cart.set_shipping') }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              {% for method in methods %}
+                <label class="radio-card">
+                  <input type="radio" name="shipping_method_id" value="{{ method.id }}"
+                         {{ 'checked' if summary.shipping_method and summary.shipping_method.id == method.id }}
+                         data-cost="{{ method.base_cost }}">
+                  <span style="flex:1">
+                    <strong>{{ method.name }}</strong>
+                    <span>{{ method.description or method.type_label }}{% if method.estimated_days %} — {{ method.estimated_days }}{% endif %}</span>
+                  </span>
+                  <span class="cost">{{ method.base_cost|money if method.base_cost else 'رایگان' }}</span>
+                </label>
+              {% endfor %}
+              <button type="submit" class="btn btn-outline btn-sm mt-2">ثبت روش ارسال</button>
+            </form>
+          </div>
+        {% endif %}
+
+        <div class="mt-2"><a href="{{ url_for('storefront.product_list') }}" class="small">← ادامه خرید</a></div>
+      </div>
+
+      <aside class="card summary-card">
+        <div class="card-head"><h3>خلاصه سفارش</h3></div>
+
+        {% if summary.coupon_code and summary.coupon %}
+          <div class="coupon-chip">
+            <span>🎟️ {{ summary.coupon.code }} — {{ summary.coupon.description or 'کد تخفیف' }}</span>
+            <form method="post" action="{{ url_for('cart.remove_coupon') }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" aria-label="حذف کد">✕</button>
+            </form>
+          </div>
+        {% else %}
+          <form method="post" action="{{ url_for('cart.apply_coupon') }}" class="coupon-row">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="text" name="code" placeholder="کد تخفیف" maxlength="50" aria-label="کد تخفیف">
+            <button type="submit" class="btn btn-outline btn-sm">اعمال</button>
+          </form>
+          {% if summary.coupon_message %}<div class="tiny text-danger">{{ summary.coupon_message }}</div>{% endif %}
+        {% endif %}
+
+        <div class="summary-row"><span>جمع کالاها</span><span class="value">{{ summary.subtotal|money }}</span></div>
+        {% if summary.discount %}
+          <div class="summary-row"><span>تخفیف</span><span class="value discount">− {{ summary.discount|money }}</span></div>
+        {% endif %}
+        {% if summary.has_physical %}
+          <div class="summary-row">
+            <span>هزینه ارسال</span>
+            <span class="value">{{ summary.shipping_cost|money if summary.shipping_cost else 'محاسبه در مرحله بعد' }}</span>
+          </div>
+        {% endif %}
+        {% if summary.tax_amount %}
+          <div class="summary-row"><span>مالیات</span><span class="value">{{ summary.tax_amount|money }}</span></div>
+        {% endif %}
+        <div class="summary-row total"><span>مبلغ قابل پرداخت</span><span>{{ summary.total|money }}</span></div>
+
+        <a class="btn btn-primary btn-block btn-lg mt-2" href="{{ url_for('checkout.index') }}">ادامه فرآیند خرید</a>
+
+        <form method="post" action="{{ url_for('cart.clear') }}" class="mt-2 text-center">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="cart-item-remove" data-confirm="سبد خرید خالی شود؟">خالی کردن سبد</button>
+        </form>
+
+        <div class="trust-row" style="justify-content:center">
+          <span>🔒 پرداخت امن</span><span>🚚 ارسال سریع</span>
+        </div>
+      </aside>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

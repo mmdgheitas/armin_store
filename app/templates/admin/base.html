@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}پنل مدیریت{% endblock %} — {{ store_name }}</title>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <link rel="preload" href="{{ url_for('static', filename='fonts/Vazirmatn-Regular.woff2') }}" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+{% macro nav_link(endpoint, label, icon, perm=None, badge=None) %}
+  {% if perm is none or current_user.has_permission(perm) %}
+    <a href="{{ url_for(endpoint) }}" class="{{ 'active' if request.endpoint == endpoint }}">
+      <span aria-hidden="true">{{ icon }}</span>{{ label }}
+      {% if badge %}<span class="nav-badge">{{ badge }}</span>{% endif %}
+    </a>
+  {% endif %}
+{% endmacro %}
+<div class="admin-shell">
+  <aside class="admin-sidebar">
+    <div class="sidebar-brand">
+      <span class="logo">{{ store_name[:1] }}</span>
+      <div>
+        <strong>{{ store_name }}</strong>
+        <span>پنل مدیریت</span>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      {{ nav_link('admin.dashboard', 'داشبورد', '📊', 'dashboard.view') }}
+
+      <div class="nav-group-title">فروش</div>
+      {{ nav_link('admin.orders', 'سفارش‌ها', '🧾', 'orders.view') }}
+      {{ nav_link('admin.order_create', 'ثبت سفارش دستی', '➕', 'orders.manage') }}
+      {{ nav_link('admin.payments', 'پرداخت‌ها', '💳', 'payments.view') }}
+      {{ nav_link('admin.customers', 'مشتریان', '👥', 'customers.view') }}
+
+      <div class="nav-group-title">کاتالوگ</div>
+      {{ nav_link('admin.products', 'محصولات', '📦', 'products.view') }}
+      {{ nav_link('admin.categories', 'دسته‌بندی‌ها', '🗂️', 'categories.manage') }}
+      {{ nav_link('admin.inventory', 'انبار و موجودی', '🏷️', 'inventory.view') }}
+      {{ nav_link('admin.inventory_movements', 'گردش انبار', '🔁', 'inventory.view') }}
+
+      <div class="nav-group-title">بازاریابی و محتوا</div>
+      {{ nav_link('admin.coupons', 'کدهای تخفیف', '🎟️', 'coupons.manage') }}
+      {{ nav_link('admin.ads', 'نوار تبلیغاتی', '📣', 'ads.manage') }}
+      {{ nav_link('admin.blog_posts', 'وبلاگ', '📝', 'blog.manage') }}
+      {{ nav_link('admin.pages', 'صفحات ثابت', '📄', 'pages.manage') }}
+
+      <div class="nav-group-title">پشتیبانی و نظارت</div>
+      {{ nav_link('admin.tickets', 'تیکت‌ها', '🎫', 'tickets.manage') }}
+      {{ nav_link('admin.reviews', 'نظرات', '💬', 'reviews.moderate') }}
+      {{ nav_link('admin.videos', 'ویدئوهای مشتریان', '🎬', 'videos.moderate') }}
+
+      <div class="nav-group-title">گزارش‌ها</div>
+      {{ nav_link('admin.reports', 'گزارش فروش', '📈', 'reports.view') }}
+      {{ nav_link('admin.reports_profit', 'سود و زیان', '💰', 'reports.view') }}
+      {{ nav_link('admin.reports_inventory', 'گزارش انبار', '📋', 'inventory.view') }}
+      {{ nav_link('admin.expenses', 'هزینه‌ها', '🧮', 'expenses.manage') }}
+
+      <div class="nav-group-title">سیستم</div>
+      {{ nav_link('admin.shipping', 'روش‌های ارسال', '🚚', 'shipping.manage') }}
+      {{ nav_link('admin.users', 'کاربران و نقش‌ها', '🔐', 'users.manage') }}
+      {{ nav_link('admin.audit_logs', 'لاگ رویدادها', '🧭', 'audit.view') }}
+      {{ nav_link('admin.backups', 'پشتیبان‌گیری', '🗄️', 'backups.manage') }}
+      {% if current_user.has_permission('settings.manage') %}
+        <a href="{{ url_for('admin.settings_group', group='general') }}" class="{{ 'active' if request.endpoint == 'admin.settings_group' }}"><span>⚙️</span>تنظیمات</a>
+      {% endif %}
+      {% if current_user.has_permission('payment_settings.manage') %}
+        <a href="{{ url_for('admin.payment_settings') }}" class="{{ 'active' if request.endpoint == 'admin.payment_settings' }}"><span>💳</span>درگاه پرداخت</a>
+      {% endif %}
+      {% if current_user.has_permission('sms_settings.manage') %}
+        <a href="{{ url_for('admin.sms_settings') }}" class="{{ 'active' if request.endpoint == 'admin.sms_settings' }}"><span>✉️</span>تنظیمات پیامک</a>
+      {% endif %}
+      {% if current_user.has_permission('settings.manage') %}
+        <a href="{{ url_for('admin.system_status') }}" class="{{ 'active' if request.endpoint == 'admin.system_status' }}"><span>🩺</span>وضعیت سیستم</a>
+      {% endif %}
+    </nav>
+  </aside>
+
+  <div class="admin-main">
+    <header class="admin-topbar">
+      <button type="button" class="sidebar-toggle" data-sidebar-toggle aria-label="منو">☰</button>
+      <div class="topbar-title">
+        {% block page_title %}پنل مدیریت{% endblock %}
+        <small>{% block page_sub %}{{ store_name }}{% endblock %}</small>
+      </div>
+      <div class="topbar-actions">
+        {% if settings.maintenance_mode %}<span class="badge badge-warning">حالت تعمیرات</span>{% endif %}
+        <a class="btn btn-outline btn-sm" href="{{ url_for('storefront.home') }}" target="_blank" rel="noopener">مشاهده سایت ↗</a>
+        <div class="topbar-user">
+          <span class="avatar-circle" style="width:28px;height:28px;font-size:.75rem">{{ current_user.full_name[:1] }}</span>
+          <span>{{ current_user.display_name }}</span>
+        </div>
+        <form method="post" action="{{ url_for('auth.logout') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-ghost btn-sm">خروج</button>
+        </form>
+      </div>
+    </header>
+
+    <main class="admin-content">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ 'error' if category in ['error', 'danger'] else ('success' if category == 'success' else ('warning' if category == 'warning' else 'info')) }}">
+            <span>{{ message }}</span>
+          </div>
+        {% endfor %}
+      {% endwith %}
+      {% block content %}{% endblock %}
+    </main>
+
+    <footer class="admin-footer">
+      <span>{{ store_name }} — پنل مدیریت نسخه ۱.۰.۰</span>
+      <span>آخرین وضعیت: {{ now_placeholder if now_placeholder is defined else '' }} ساخته‌شده با Flask</span>
+    </footer>
+  </div>
+</div>
+<script src="{{ url_for('static', filename='js/admin.js') }}" defer></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

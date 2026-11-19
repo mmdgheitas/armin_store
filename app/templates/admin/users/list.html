@@ -1,0 +1,56 @@
+{% extends "admin/base.html" %}
+{% from "_macros.html" import pagination %}
+{% block title %}کاربران پنل{% endblock %}
+{% block page_title %}کاربران پنل{% endblock %}
+{% block page_sub %}{{ page.total|number }} کاربر{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>کاربران پنل مدیریت</h1><p>دسترسی‌ها بر اساس نقش‌ها تعیین می‌شود.</p></div>
+  <div class="page-actions">
+    <a class="btn btn-outline" href="{{ url_for('admin.roles') }}">نقش‌ها و مجوزها</a>
+    <a class="btn btn-primary" href="{{ url_for('admin.user_save') }}">➕ کاربر جدید</a>
+  </div>
+</div>
+<div class="panel">
+  <div class="panel-head">
+    <form method="get" class="filter-bar">
+      <div class="field grow"><label>جستجو</label><input type="text" name="q" value="{{ q }}" placeholder="نام یا موبایل"></div>
+      <label class="checkbox-line"><input type="checkbox" name="staff" value="1" {{ 'checked' if request.args.get('staff') == '1' }}> فقط کارکنان</label>
+      <div class="field" style="max-width:120px"><button class="btn btn-primary btn-block">جستجو</button></div>
+    </form>
+  </div>
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>نام</th><th>موبایل</th><th>نقش‌ها</th><th>وضعیت</th><th>آخرین ورود</th><th>عضویت</th><th>عملیات</th></tr></thead>
+      <tbody>
+        {% for user in page.items %}
+          <tr>
+            <td><strong>{{ user.full_name }}</strong>{% if user.id == current_user.id %}<span class="badge badge-info">شما</span>{% endif %}
+              <div class="tiny muted" dir="ltr">{{ user.email or '' }}</div>
+            </td>
+            <td dir="ltr">{{ user.mobile }}</td>
+            <td class="tiny">{{ user.role_titles if user.roles else 'بدون نقش' }}</td>
+            <td>{% if user.is_active %}<span class="badge badge-success">فعال</span>{% else %}<span class="badge badge-danger">غیرفعال</span>{% endif %}</td>
+            <td class="tiny">{{ user.last_login_at|jdatetime if user.last_login_at else '—' }}</td>
+            <td class="tiny">{{ user.created_at|jdate }}</td>
+            <td>
+              <div class="actions">
+                <a class="btn btn-outline btn-sm" href="{{ url_for('admin.user_save', user_id=user.id) }}">ویرایش</a>
+                {% if user.id != current_user.id %}
+                  <form method="post" action="{{ url_for('admin.user_toggle', user_id=user.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="btn btn-ghost btn-sm">{{ 'غیرفعال' if user.is_active else 'فعال' }}</button>
+                  </form>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="7"><div class="empty"><p>کاربری یافت نشد.</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {{ pagination(page) }}
+</div>
+{% endblock %}

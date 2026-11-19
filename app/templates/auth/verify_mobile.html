@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}تأیید شماره موبایل — {{ store_name }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-head">
+      <h1>تأیید شماره موبایل</h1>
+      <p>برای امنیت حساب و دریافت اطلاع‌رسانی سفارش‌ها، شماره موبایل خود را تأیید کنید.</p>
+    </div>
+    <div class="alert alert-info">شماره ثبت‌شده: <strong dir="ltr">{{ current_user.mobile }}</strong></div>
+    <form method="post" action="{{ url_for('auth.otp_request') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="purpose" value="verify_mobile">
+      {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+      <button type="submit" class="btn btn-primary btn-block">ارسال کد تأیید</button>
+    </form>
+    <div class="auth-footer"><a href="{{ url_for('account.dashboard') }}">بعداً انجام می‌دهم</a></div>
+  </div>
+</div>
+{% endblock %}

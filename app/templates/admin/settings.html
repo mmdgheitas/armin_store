@@ -1,0 +1,96 @@
+{% extends "admin/base.html" %}
+{% block title %}تنظیمات{% endblock %}
+{% block page_title %}تنظیمات{% endblock %}
+{% block page_sub %}{{ group_title }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>تنظیمات فروشگاه</h1><p>{{ group_title }}</p></div>
+  <div class="page-actions">
+    <a class="btn btn-outline" href="{{ url_for('admin.system_status') }}">وضعیت سیستم</a>
+    <a class="btn btn-outline" href="{{ url_for('admin.backups') }}">پشتیبان‌گیری</a>
+  </div>
+</div>
+
+<div class="tabs">
+  {% for key, title in groups.items() %}
+    {% if current_user.has_permission('settings.manage') or (key == 'backup' and current_user.has_permission('backups.manage')) or (key == 'seo' and current_user.has_permission('seo.manage')) %}
+      <a href="{{ url_for('admin.settings_group', group=key) }}" class="{{ 'active' if group == key }}">{{ title }}</a>
+    {% endif %}
+  {% endfor %}
+</div>
+
+<div class="panel">
+  <div class="panel-head"><h2>{{ group_title }}</h2><span class="sub">{{ defs|length }} تنظیم</span></div>
+  <div class="panel-body">
+    <form method="post" action="{{ url_for('admin.settings_group', group=group) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-grid">
+        {% for defn in defs %}
+          <div class="field {{ 'full' if defn.type == 'text' }}">
+            {% if defn.type == 'bool' %}
+              <label class="checkbox-line">
+                <input type="checkbox" name="{{ defn.key }}" value="1" {{ 'checked' if values.get(defn.key) }}>
+                {{ defn.label or defn.key }}
+              </label>
+            {% else %}
+              <label for="{{ defn.key }}">{{ defn.label or defn.key }}</label>
+              {% if defn.type == 'text' %}
+                <textarea id="{{ defn.key }}" name="{{ defn.key }}" rows="{{ defn.rows }}">{{ values.get(defn.key, '') }}</textarea>
+              {% elif defn.type == 'select' %}
+                <select id="{{ defn.key }}" name="{{ defn.key }}">
+                  {% for value, label in defn.options %}
+                    <option value="{{ value }}" {{ 'selected' if values.get(defn.key)|string == value }}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+              {% elif defn.type == 'int' %}
+                <input type="number" id="{{ defn.key }}" name="{{ defn.key }}" value="{{ values.get(defn.key, 0) }}">
+              {% elif defn.type == 'color' %}
+                <input type="color" id="{{ defn.key }}" name="{{ defn.key }}" value="{{ values.get(defn.key, '#0f766e') }}">
+              {% elif defn.sensitive %}
+                <input type="password" id="{{ defn.key }}" name="{{ defn.key }}" value="{{ values.get(defn.key, '') }}" autocomplete="new-password">
+                <small class="hint">مقدار ذخیره‌شده ماسک می‌شود؛ برای تغییر، مقدار جدید وارد کنید.</small>
+              {% else %}
+                <input type="text" id="{{ defn.key }}" name="{{ defn.key }}" value="{{ values.get(defn.key, '') }}" dir="{{ 'ltr' if defn.key in ['contact_email', 'social_instagram', 'social_telegram', 'social_whatsapp', 'social_twitter', 'store_logo', 'store_favicon'] else 'rtl' }}">
+              {% endif %}
+            {% endif %}
+            {% if defn.help %}<small class="hint">{{ defn.help }}</small>{% endif %}
+          </div>
+        {% endfor %}
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">💾 ذخیره تنظیمات</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if group == 'general' %}
+  <div class="panel">
+    <div class="panel-head"><h2>لوگو و فاوآیکون</h2></div>
+    <div class="panel-body">
+      <div class="d-flex gap-3 flex-wrap" style="gap:24px">
+        <div>
+          <div class="tiny muted mb-1">لوگوی فعلی</div>
+          {% if settings.store_logo %}<img src="{{ media_url(settings.store_logo) }}" alt="logo" style="height:60px;border-radius:10px;border:1px solid var(--a-border)">{% else %}<span class="muted small">ثبت نشده</span>{% endif %}
+          <form method="post" action="{{ url_for('admin.upload_branding') }}" enctype="multipart/form-data" class="mt-1">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="kind" value="logo">
+            <input type="file" name="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" required>
+            <button type="submit" class="btn btn-outline btn-sm mt-1">آپلود لوگو</button>
+          </form>
+        </div>
+        <div>
+          <div class="tiny muted mb-1">فاوآیکون فعلی</div>
+          {% if settings.store_favicon %}<img src="{{ media_url(settings.store_favicon) }}" alt="favicon" style="height:40px;border-radius:8px;border:1px solid var(--a-border)">{% else %}<span class="muted small">ثبت نشده</span>{% endif %}
+          <form method="post" action="{{ url_for('admin.upload_branding') }}" enctype="multipart/form-data" class="mt-1">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="kind" value="favicon">
+            <input type="file" name="file" accept="image/png,image/x-icon,image/svg+xml" required>
+            <button type="submit" class="btn btn-outline btn-sm mt-1">آپلود فاوآیکون</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

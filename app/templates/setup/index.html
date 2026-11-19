@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>نصب فروشگاه — Armin Store</title>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+<body style="background:#f1f5f9">
+<div class="container" style="max-width:900px;padding-top:30px;padding-bottom:50px">
+  <div class="card" style="padding:26px">
+    <div class="d-flex items-center gap-2 mb-2">
+      <span class="brand-logo">A</span>
+      <div>
+        <h1 style="margin:0;font-size:1.25rem">نصب فروشگاه Armin Store</h1>
+        <p class="small text-muted" style="margin:0">جادوگر نصب — فقط یک بار اجرا می‌شود</p>
+      </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ 'error' if category in ['error', 'danger'] else 'info' }}">{{ message }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    <h3 class="mt-2">۱. بررسی پیش‌نیازهای سرور</h3>
+    <div class="table-wrap mb-2">
+      <table class="table">
+        <thead><tr><th>مورد</th><th>وضعیت</th><th>جزئیات</th><th>الزامی</th></tr></thead>
+        <tbody>
+          {% for check in checks %}
+            <tr>
+              <td>{{ check.label }}</td>
+              <td>
+                {% if check.ok %}<span class="badge badge-success">✓ آماده</span>
+                {% else %}<span class="badge badge-danger">✕ مشکل</span>{% endif %}
+              </td>
+              <td class="tiny text-muted">{{ check.detail }}</td>
+              <td>{% if check.required %}<span class="badge badge-warning">بله</span>{% else %}<span class="badge badge-muted">خیر</span>{% endif %}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if not required_ok %}
+      <div class="alert alert-error">پیش‌نیازهای الزامی برقرار نیست. موارد قرمز را از طریق پنل هاست برطرف کنید و صفحه را دوباره بارگذاری کنید.</div>
+    {% endif %}
+
+    <hr class="divider">
+    <h3>۲. اطلاعات فروشگاه و مدیر کل</h3>
+    <div class="alert alert-info">
+      {{ install_key_hint }}
+      {% if key_available %}برای ادامه، کلید نصب را از فایل <code dir="ltr">instance/install_key.txt</code> کپی کنید.{% endif %}
+    </div>
+
+    <form method="post" action="{{ url_for('setup.install') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-grid">
+        <div class="field full">
+          <label for="install_key">کلید نصب <span class="req">*</span></label>
+          <input type="text" id="install_key" name="install_key" required autocomplete="off" dir="ltr">
+        </div>
+        <div class="field">
+          <label for="store_name">نام فروشگاه <span class="req">*</span></label>
+          <input type="text" id="store_name" name="store_name" required minlength="3" maxlength="120" value="{{ (form or {}).get('store_name', '') }}">
+        </div>
+        <div class="field">
+          <label for="store_slogan">شعار فروشگاه</label>
+          <input type="text" id="store_slogan" name="store_slogan" maxlength="160" value="{{ (form or {}).get('store_slogan', 'خرید آسان و مطمئن') }}">
+        </div>
+        <div class="field">
+          <label for="currency_unit">واحد پول</label>
+          <select id="currency_unit" name="currency_unit">
+            <option value="toman">تومان</option>
+            <option value="rial">ریال (نمایش، ذخیره تومان)</option>
+            <option value="custom">سفارشی</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="currency_label">برچسب واحد پول</label>
+          <input type="text" id="currency_label" name="currency_label" maxlength="30" value="{{ (form or {}).get('currency_label', 'تومان') }}">
+        </div>
+        <div class="field">
+          <label for="contact_email">ایمیل فروشگاه</label>
+          <input type="email" id="contact_email" name="contact_email" maxlength="190" dir="ltr">
+        </div>
+        <div class="field">
+          <label for="contact_mobile">موبایل فروشگاه</label>
+          <input type="tel" id="contact_mobile" name="contact_mobile" maxlength="11" dir="ltr" placeholder="09121234567">
+        </div>
+
+        <div class="field full"><hr class="divider" style="margin:6px 0"></div>
+
+        <div class="field">
+          <label for="admin_name">نام مدیر کل <span class="req">*</span></label>
+          <input type="text" id="admin_name" name="admin_name" required minlength="3" maxlength="150">
+        </div>
+        <div class="field">
+          <label for="admin_mobile">موبایل مدیر کل <span class="req">*</span></label>
+          <input type="tel" id="admin_mobile" name="admin_mobile" required pattern="09[0-9]{9}" maxlength="11" dir="ltr" placeholder="09121234567">
+        </div>
+        <div class="field">
+          <label for="admin_password">رمز عبور <span class="req">*</span></label>
+          <input type="password" id="admin_password" name="admin_password" required minlength="8" autocomplete="new-password">
+          <small class="hint">حداقل ۸ کاراکتر شامل حرف و عدد.</small>
+        </div>
+        <div class="field">
+          <label for="admin_password_confirm">تکرار رمز عبور <span class="req">*</span></label>
+          <input type="password" id="admin_password_confirm" name="admin_password_confirm" required autocomplete="new-password">
+        </div>
+      </div>
+
+      <label class="checkbox-row mt-2"><input type="checkbox" name="include_demo" value="1"> نصب داده‌های نمونه (محصولات، دسته‌بندی و مقاله آزمایشی)</label>
+      <label class="checkbox-row mt-1"><input type="checkbox" name="force_https" value="1" checked> هدایت خودکار به HTTPS پس از نصب</label>
+
+      <button type="submit" class="btn btn-primary btn-block btn-lg mt-3" {{ 'disabled' if not required_ok }}>شروع نصب</button>
+      <p class="tiny text-muted text-center mt-1">پس از نصب، این صفحه غیرفعال می‌شود. فایل کلید نصب را پاک کنید.</p>
+    </form>
+  </div>
+
+  <div class="card mt-2 small text-muted">
+    <strong>اطلاعات محیط:</strong> Python {{ python_version }} — دیتابیس SQLite — بدون نیاز به ترمینال.
+  </div>
+</div>
+</body>
+</html>

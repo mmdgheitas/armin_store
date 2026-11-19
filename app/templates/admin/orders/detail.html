@@ -1,0 +1,187 @@
+{% extends "admin/base.html" %}
+{% from "_macros.html" import status_badge %}
+{% block title %}سفارش {{ order.order_number }}{% endblock %}
+{% block page_title %}سفارش {{ order.order_number }}{% endblock %}
+{% block page_sub %}{{ order.created_at|jlong }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ order.order_number }}</h1>
+    <p class="d-flex gap-1 flex-wrap mt-1">{{ status_badge(order.status, order.status_label) }} {{ status_badge(order.payment_status, order.payment_status_label) }} {{ status_badge(order.shipping_status, order.shipping_status_label) }}</p>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-outline" href="{{ url_for('admin.orders') }}">بازگشت</a>
+    <a class="btn btn-outline" href="{{ url_for('admin.order_invoice', order_number=order.order_number) }}" target="_blank">🖨️ فاکتور</a>
+    {% if order.user_id %}<a class="btn btn-ghost" href="{{ url_for('admin.customer_detail', user_id=order.user_id) }}">پرونده مشتری</a>{% endif %}
+  </div>
+</div>
+
+<div class="dashboard-grid">
+  <div>
+    <div class="panel">
+      <div class="panel-head"><h2>اقلام سفارش</h2><span class="sub">{{ order.items_count|number }} عدد</span></div>
+      <div class="table-wrap">
+        <table class="data">
+          <thead><tr><th>محصول</th><th>تنوع / SKU</th><th>قیمت واحد</th><th>تعداد</th><th>جمع</th><th>هزینه خرید</th><th>تحویل</th></tr></thead>
+          <tbody>
+            {% for item in order.items %}
+              <tr>
+                <td><strong>{{ item.product_name_snapshot }}</strong>{% if item.product %}<div class="tiny"><a href="{{ url_for('storefront.product_detail', slug=item.product.slug) }}" target="_blank">صفحه محصول ↗</a></div>{% endif %}</td>
+                <td class="tiny">{{ item.variant_snapshot or '—' }}<div muted dir="ltr">{{ item.sku_snapshot }}</div></td>
+                <td class="num">{{ item.unit_price|money }}</td>
+                <td class="num">{{ item.quantity|number }}</td>
+                <td class="num"><strong>{{ item.total_price|money }}</strong></td>
+                <td class="num">{{ (item.unit_cost_snapshot * item.quantity)|money }}</td>
+                <td>
+                  {% if item.delivery_type == 'digital' %}
+                    <span class="badge badge-info">دانلودی</span>
+                    {% set state = downloadable.get(item.id) %}
+                    {% if state %}<div class="tiny">{{ state.message }}</div>{% endif %}
+                  {% else %}<span class="badge badge-muted">فیزیکی</span>{% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2>تغییر وضعیت</h2></div>
+      <div class="panel-body">
+        <form method="post" action="{{ url_for('admin.order_status', order_number=order.order_number) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="form-grid three">
+            <div class="field">
+              <label>وضعیت جدید</label>
+              <select name="status" required>
+                <option value="{{ order.status }}">— تغییر نده — ({{ order.status_label }})</option>
+                {% for value, label in next_statuses %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="field"><label>کد رهگیری</label><input type="text" name="tracking_code" value="{{ order.tracking_code or '' }}" maxlength="80" dir="ltr"></div>
+            <div class="field"><label>یادداشت (اختیاری)</label><input type="text" name="note" maxlength="400"></div>
+          </div>
+          <button type="submit" class="btn btn-primary mt-2">اعمال وضعیت</button>
+          {% if not next_statuses %}<span class="tiny muted">برای این وضعیت، گذار مجاز تعریف نشده است.</span>{% endif %}
+        </form>
+
+        <hr class="divider">
+        <form method="post" action="{{ url_for('admin.order_shipping_status', order_number=order.order_number) }}" class="form-row-inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="field"><label>وضعیت ارسال</label>
+            <select name="shipping_status">
+              {% for value, label in shipping_statuses %}<option value="{{ value }}" {{ 'selected' if order.shipping_status == value }}>{{ label }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="field"><label>کد رهگیری</label><input type="text" name="tracking_code" value="{{ order.tracking_code or '' }}" dir="ltr"></div>
+          <button type="submit" class="btn btn-outline">ثبت ارسال</button>
+        </form>
+
+        <hr class="divider">
+        <div class="form-grid three">
+          <form method="post" action="{{ url_for('admin.order_tracking', order_number=order.order_number) }}" class="field">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label>کد رهگیری مرسوله</label>
+            <div class="d-flex gap-1"><input type="text" name="tracking_code" value="{{ order.tracking_code or '' }}" dir="ltr"><button class="btn btn-outline">ثبت</button></div>
+          </form>
+          <form method="post" action="{{ url_for('admin.order_cancel', order_number=order.order_number) }}" class="field">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label>لغو سفارش</label>
+            <div class="d-flex gap-1"><input type="text" name="reason" placeholder="دلیل لغو"><button class="btn btn-danger" data-confirm="سفارش لغو و موجودی بازگردانده شود؟">لغو</button></div>
+          </form>
+          <form method="post" action="{{ url_for('admin.order_refund', order_number=order.order_number) }}" class="field">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label>ثبت بازگشت وجه (تومان)</label>
+            <div class="d-flex gap-1"><input type="number" name="amount" min="0" value="{{ order.total_amount }}"><button class="btn btn-warning" data-confirm="بازگشت وجه ثبت شود؟">ثبت</button></div>
+          </form>
+        </div>
+
+        <hr class="divider">
+        <form method="post" action="{{ url_for('admin.order_return', order_number=order.order_number) }}" class="form-row-inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="field grow"><label>ثبت مرجوعی</label><input type="text" name="reason" placeholder="دلیل مرجوعی"></div>
+          <label class="checkbox-line"><input type="checkbox" name="restock" value="1" checked> بازگشت به انبار</label>
+          <button type="submit" class="btn btn-warning" data-confirm="مرجوعی ثبت شود؟">ثبت مرجوعی</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2>یادداشت داخلی</h2></div>
+      <div class="panel-body">
+        <form method="post" action="{{ url_for('admin.order_note', order_number=order.order_number) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <textarea name="admin_note" style="min-height:90px" placeholder="یادداشت فقط برای مدیران">{{ order.admin_note or '' }}</textarea>
+          <button type="submit" class="btn btn-outline btn-sm mt-1">ذخیره یادداشت</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2>تاریخچه</h2></div>
+      <div class="panel-body tight">
+        <table class="data" style="min-width:0">
+          <tbody>
+            {% for row in order.status_history %}
+              <tr>
+                <td>{{ row.field }}: {{ row.to_value }}{% if row.note %}<div class="tiny muted">{{ row.note }}</div>{% endif %}</td>
+                <td class="tiny">{{ row.created_at|jdatetime }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="panel">
+      <div class="panel-head"><h2>صورت‌حساب</h2></div>
+      <div class="panel-body">
+        <div class="kv"><span>جمع کالاها</span><span>{{ order.subtotal|money }}</span></div>
+        <div class="kv"><span>تخفیف</span><span>{{ order.discount_amount|money }}</span></div>
+        <div class="kv"><span>هزینه ارسال</span><span>{{ order.shipping_cost|money }}</span></div>
+        <div class="kv"><span>مالیات</span><span>{{ order.tax_amount|money }}</span></div>
+        <div class="kv"><span>مبلغ کل</span><span class="bold">{{ order.total_amount|money }}</span></div>
+        <div class="kv"><span>بازگشت وجه</span><span>{{ order.refund_amount|money }}</span></div>
+        <div class="kv"><span>سود ناخالص</span><span>{{ order.profit_amount|money }}</span></div>
+        {% if order.coupon_code %}<div class="kv"><span>کد تخفیف</span><span>{{ order.coupon_code }}</span></div>{% endif %}
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2>مشتری</h2></div>
+      <div class="panel-body">
+        <div class="kv"><span>نام</span><span>{{ order.customer_name }}</span></div>
+        <div class="kv"><span>موبایل</span><span dir="ltr">{{ order.customer_mobile }}</span></div>
+        {% if order.guest_email %}<div class="kv"><span>ایمیل</span><span dir="ltr">{{ order.guest_email }}</span></div>{% endif %}
+        <div class="kv"><span>نوع</span><span>{{ 'مهمان' if order.is_guest else 'کاربر ثبت‌نام‌شده' }}</span></div>
+        <div class="kv"><span>آدرس</span><span>{{ order.shipping_address.get('province', '') }} {{ order.shipping_address.get('city', '') }}<br>{{ order.shipping_address.get('full_address', '') }}</span></div>
+        {% if order.shipping_method_name %}<div class="kv"><span>روش ارسال</span><span>{{ order.shipping_method_name }}</span></div>{% endif %}
+        {% if order.customer_note %}<div class="kv"><span>توضیح مشتری</span><span>{{ order.customer_note }}</span></div>{% endif %}
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2>پرداخت‌ها</h2></div>
+      <div class="panel-body tight">
+        {% if order.payments %}
+          <table class="data" style="min-width:0">
+            <tbody>
+              {% for payment in order.payments %}
+                <tr>
+                  <td><a href="{{ url_for('admin.payment_detail', payment_id=payment.id) }}">{{ payment.gateway }}</a><div class="tiny muted">{{ payment.created_at|jdatetime }}</div></td>
+                  <td class="num">{{ payment.amount|money }}<div>{{ status_badge(payment.status, payment_status_labels.get(payment.status, payment.status)) }}</div></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <div class="empty"><p>پرداختی ثبت نشده است.</p></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

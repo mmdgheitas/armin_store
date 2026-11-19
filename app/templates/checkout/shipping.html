@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}انتخاب روش ارسال — {{ store_name }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="page-header">
+    <h1>روش ارسال</h1>
+    <p>هزینه ارسال بر اساس استان و شهر مقصد محاسبه می‌شود.</p>
+  </div>
+  <div class="checkout-layout">
+    <div class="card">
+      <h3>روش ارسال را انتخاب کنید</h3>
+      <form method="post" action="{{ url_for('cart.set_shipping') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="next" value="{{ url_for('checkout.index') }}">
+        {% for option in options %}
+          <label class="radio-card">
+            <input type="radio" name="shipping_method_id" value="{{ option.method.id }}" {{ 'checked' if loop.first }}>
+            <span style="flex:1">
+              <strong>{{ option.method.name }}</strong>
+              <span>{{ option.method.description or option.method.type_label }}{% if option.method.estimated_days %} • {{ option.method.estimated_days }}{% endif %}</span>
+            </span>
+            <span class="cost">{{ option.cost|money if option.cost else 'رایگان' }}</span>
+          </label>
+        {% endfor %}
+        {% if not options %}<div class="alert alert-warning">روش ارسالی برای این مقصد تعریف نشده است.</div>{% endif %}
+        <button type="submit" class="btn btn-primary mt-3">ادامه و تسویه حساب</button>
+      </form>
+    </div>
+    <aside class="card">
+      <div class="card-head"><h3>خلاصه</h3></div>
+      <div class="summary-row"><span>جمع کالاها</span><span class="value">{{ summary.subtotal|money }}</span></div>
+      <div class="summary-row"><span>تخفیف</span><span class="value discount">{{ summary.discount|money }}</span></div>
+      <div class="summary-row total"><span>مبلغ کالاها</span><span>{{ (summary.subtotal - summary.discount)|money }}</span></div>
+      <p class="tiny text-muted mt-2">مقصد: {{ address.get('province') or '—' }}{% if address.get('city') %}, {{ address.get('city') }}{% endif %}</p>
+    </aside>
+  </div>
+</div>
+{% endblock %}

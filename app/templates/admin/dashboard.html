@@ -1,0 +1,169 @@
+{% extends "admin/base.html" %}
+{% from "_macros.html" import status_badge %}
+{% block title %}داشبورد{% endblock %}
+{% block page_title %}داشبورد{% endblock %}
+{% block page_sub %}نمای کلی فروشگاه{% endblock %}
+{% block content %}
+<div class="stats-grid">
+  <div class="stat-card accent">
+    <div class="top"><span class="label">فروش امروز</span><span class="icon">💰</span></div>
+    <div class="value">{{ stats.today.gross_sales|money }}</div>
+    <div class="hint">{{ stats.today.orders_count|number }} سفارش پرداخت‌شده</div>
+  </div>
+  <div class="stat-card">
+    <div class="top"><span class="label">فروش ۳۰ روز</span><span class="icon">📈</span></div>
+    <div class="value">{{ stats.month.gross_sales|money }}</div>
+    <div class="hint">{{ stats.month.orders_count|number }} سفارش</div>
+  </div>
+  <div class="stat-card">
+    <div class="top"><span class="label">سود ناخالص ۳۰ روز</span><span class="icon">🧮</span></div>
+    <div class="value">{{ stats.month.gross_profit|money }}</div>
+    <div class="hint">حاشیه سود: {{ stats.month.margin_percent|number }}٪</div>
+  </div>
+  <div class="stat-card">
+    <div class="top"><span class="label">سفارش‌های در انتظار پرداخت</span><span class="icon">⏳</span></div>
+    <div class="value">{{ stats.counts.pending_orders|number }}</div>
+    <div class="hint">کل سفارش‌ها: {{ stats.counts.orders|number }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="top"><span class="label">مشتریان</span><span class="icon">👥</span></div>
+    <div class="value">{{ stats.counts.customers|number }}</div>
+    <div class="hint">محصولات: {{ stats.counts.products|number }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="top"><span class="label">در انتظار بررسی</span><span class="icon">🔔</span></div>
+    <div class="value">{{ (stats.counts.pending_reviews + stats.counts.pending_videos + stats.counts.open_tickets)|number }}</div>
+    <div class="hint">{{ stats.counts.pending_reviews|number }} نظر، {{ stats.counts.pending_videos|number }} ویدئو، {{ stats.counts.open_tickets|number }} تیکت</div>
+  </div>
+</div>
+
+<div class="dashboard-grid">
+  <div class="panel">
+    <div class="panel-head">
+      <h2>فروش ۱۴ روز اخیر</h2>
+      <div class="panel-tools"><span class="badge badge-primary">{{ stats.all_time.gross_sales|money }} کل فروش</span></div>
+    </div>
+    <div class="panel-body">
+      <div class="chart-wrap">
+        <canvas class="chart" data-chart data-height="240" data-points="{{ series|tojson|forceescape }}"></canvas>
+      </div>
+      <div class="chart-legend"><span><i style="background:#0f766e"></i>مبلغ فروش (تومان)</span></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head"><h2>وضعیت سیستم</h2><a class="btn btn-outline btn-sm" href="{{ url_for('admin.system_status') }}">جزئیات</a></div>
+    <div class="panel-body">
+      <div class="kv"><span>محیط اجرا</span><span>Python {{ system.python }} / SQLite {{ system.sqlite }}</span></div>
+      <div class="kv"><span>نسخه اسکیما</span><span>{{ system.schema.current if system.schema else 1 }}</span></div>
+      <div class="kv"><span>حجم دیتابیس</span><span>{{ system.db_size|filesize }}</span></div>
+      <div class="kv"><span>حجم فایل‌ها</span><span>{{ system.storage_size|filesize }}</span></div>
+      <div class="kv"><span>درگاه پرداخت</span>
+        <span>
+          {% if not system.gateway_enabled %}<span class="badge badge-muted">تنظیم نشده</span>
+          {% elif system.gateway_test_mode %}<span class="badge badge-warning">حالت آزمایشی</span>
+          {% else %}<span class="badge badge-success">فعال</span>{% endif %}
+        </span>
+      </div>
+      <div class="kv"><span>پیامک</span>
+        <span>{% if system.sms_enabled %}<span class="badge badge-success">فعال</span>{% else %}<span class="badge badge-muted">غیرفعال</span>{% endif %}</span>
+      </div>
+      <div class="kv"><span>آخرین بکاپ</span><span>{{ system.last_backup.created_at|jdatetime if system.last_backup else '—' }}</span></div>
+      <div class="kv"><span>زمان سرور</span><span>{{ system.uptime_server|jdatetime }}</span></div>
+      {% if system.maintenance %}
+        <div class="alert alert-warning mt-2 mb-0">حالت تعمیرات فعال است؛ فروشگاه برای مشتریان بسته است.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="dashboard-grid">
+  <div class="panel">
+    <div class="panel-head">
+      <h2>سفارش‌های اخیر</h2>
+      <a class="btn btn-outline btn-sm" href="{{ url_for('admin.orders') }}">همه سفارش‌ها</a>
+    </div>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>شماره</th><th>مشتری</th><th>مبلغ</th><th>وضعیت</th><th>تاریخ</th><th></th></tr></thead>
+        <tbody>
+          {% for order in stats.recent_orders %}
+            <tr>
+              <td><strong>{{ order.order_number }}</strong></td>
+              <td>{{ order.customer_name }}<div class="tiny muted">{{ order.customer_mobile }}</div></td>
+              <td class="num">{{ order.total_amount|money }}</td>
+              <td>{{ status_badge(order.status, order.status_label) }}</td>
+              <td class="tiny">{{ order.created_at|jdatetime }}</td>
+              <td><a class="btn btn-outline btn-sm" href="{{ url_for('admin.order_detail', order_number=order.order_number) }}">مشاهده</a></td>
+            </tr>
+          {% else %}
+            <tr><td colspan="6"><div class="empty"><div class="icon">🧾</div><p>سفارشی ثبت نشده است.</p></div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head"><h2>موجودی کم</h2><a class="btn btn-outline btn-sm" href="{{ url_for('admin.inventory') }}">انبار</a></div>
+    <div class="panel-body tight">
+      {% if low_stock %}
+        <table class="data" style="min-width:0">
+          <tbody>
+            {% for variant in low_stock %}
+              <tr>
+                <td>{{ variant.product.name }}<div class="tiny muted">{{ variant.sku }}</div></td>
+                <td class="num"><span class="badge {{ 'badge-danger' if variant.stock_quantity <= 0 else 'badge-warning' }}">{{ variant.stock_quantity|number }}</span></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <div class="empty"><div class="icon">✅</div><p>موجودی همه محصولات مناسب است.</p></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="dashboard-grid">
+  <div class="panel">
+    <div class="panel-head"><h2>آخرین پرداخت‌ها</h2><a class="btn btn-outline btn-sm" href="{{ url_for('admin.payments') }}">همه</a></div>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>سفارش</th><th>مبلغ</th><th>وضعیت</th><th>زمان</th></tr></thead>
+        <tbody>
+          {% for payment in payments %}
+            <tr>
+              <td><a href="{{ url_for('admin.payment_detail', payment_id=payment.id) }}">{{ payment.order.order_number }}</a></td>
+              <td class="num">{{ payment.amount|money }}</td>
+              <td>{{ status_badge(payment.status, payment_status_labels.get(payment.status, payment.status)) }}</td>
+              <td class="tiny">{{ payment.created_at|jdatetime }}</td>
+            </tr>
+          {% else %}
+            <tr><td colspan="4"><div class="empty"><p>پرداختی ثبت نشده است.</p></div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-head"><h2>رویدادهای اخیر مدیران</h2><a class="btn btn-outline btn-sm" href="{{ url_for('admin.audit_logs') }}">لاگ کامل</a></div>
+    <div class="panel-body tight">
+      {% if recent_audit %}
+        <table class="data" style="min-width:0">
+          <tbody>
+            {% for row in recent_audit %}
+              <tr>
+                <td>{{ row.action }}<div class="tiny muted">{{ row.entity_type or '' }} {{ row.entity_id or '' }}</div></td>
+                <td class="tiny">{{ row.created_at|timeago }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <div class="empty"><p>رویدادی ثبت نشده است.</p></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

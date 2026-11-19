@@ -1,0 +1,99 @@
+{% extends "admin/base.html" %}
+{% from "_macros.html" import pagination %}
+{% block title %}محصولات{% endblock %}
+{% block page_title %}محصولات{% endblock %}
+{% block page_sub %}{{ page.total|number }} محصول{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>مدیریت محصولات</h1><p>ایجاد، ویرایش، انتشار و مدیریت موجودی محصولات</p></div>
+  <div class="page-actions">
+    <a class="btn btn-outline" href="{{ url_for('admin.categories') }}">دسته‌بندی‌ها</a>
+    <a class="btn btn-primary" href="{{ url_for('admin.product_create') }}">➕ محصول جدید</a>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-head">
+    <form method="get" class="filter-bar w-100">
+      <div class="field grow"><label>جستجو</label><input type="text" name="q" value="{{ q }}" placeholder="نام، SKU یا کد محصول"></div>
+      <div class="field">
+        <label>دسته‌بندی</label>
+        <select name="category_id">
+          <option value="">همه</option>
+          {% for category in categories %}
+            <option value="{{ category.id }}" {{ 'selected' if category_id == category.id }}>{{ category.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label>وضعیت</label>
+        <select name="status">
+          <option value="">همه</option>
+          <option value="active" {{ 'selected' if status == 'active' }}>منتشرشده</option>
+          <option value="inactive" {{ 'selected' if status == 'inactive' }}>پیش‌نویس</option>
+          <option value="featured" {{ 'selected' if status == 'featured' }}>ویژه</option>
+          <option value="out" {{ 'selected' if status == 'out' }}>ناموجود</option>
+        </select>
+      </div>
+      <div class="field" style="max-width:120px"><button type="submit" class="btn btn-primary btn-block">فیلتر</button></div>
+      <div class="field" style="max-width:110px"><a class="btn btn-outline btn-block" href="{{ url_for('admin.products') }}">پاک‌سازی</a></div>
+    </form>
+  </div>
+  <div class="table-wrap">
+    <table class="data">
+      <thead>
+        <tr><th>محصول</th><th>دسته</th><th>قیمت</th><th>موجودی</th><th>نوع</th><th>وضعیت</th><th>فروش</th><th>عملیات</th></tr>
+      </thead>
+      <tbody>
+        {% for product in page.items %}
+          <tr>
+            <td>
+              <div class="d-flex items-center gap-1">
+                {% if product.image_url %}<img class="thumb-sm" src="{{ product.image_url }}" alt="">{% else %}<span class="thumb-sm d-grid" style="place-items:center">📦</span>{% endif %}
+                <div>
+                  <a href="{{ url_for('admin.product_edit', product_id=product.id) }}"><strong>{{ product.name }}</strong></a>
+                  <div class="tiny muted">{{ product.sku or '—' }}</div>
+                </div>
+              </div>
+            </td>
+            <td class="tiny">{{ product.category.name if product.category else '—' }}</td>
+            <td class="num">{{ product.price|money }}</td>
+            <td class="num">
+              {% if product.is_digital %}<span class="badge badge-info">دانلودی</span>
+              {% elif product.total_stock <= 0 %}<span class="badge badge-danger">ناموجود</span>
+              {% elif product.total_stock <= 5 %}<span class="badge badge-warning">{{ product.total_stock|number }}</span>
+              {% else %}{{ product.total_stock|number }}{% endif %}
+            </td>
+            <td class="tiny">{{ 'دیجیتال' if product.is_digital else 'فیزیکی' }}</td>
+            <td>
+              {% if product.is_active %}<span class="badge badge-success">منتشرشده</span>{% else %}<span class="badge badge-muted">پیش‌نویس</span>{% endif %}
+              {% if product.is_featured %}<span class="badge badge-primary">ویژه</span>{% endif %}
+            </td>
+            <td class="num">{{ product.sold_count|number }}</td>
+            <td>
+              <div class="actions">
+                <a class="btn btn-outline btn-sm" href="{{ url_for('admin.product_edit', product_id=product.id) }}">ویرایش</a>
+                <form method="post" action="{{ url_for('admin.product_toggle', product_id=product.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-ghost btn-sm">{{ 'پیش‌نویس کن' if product.is_active else 'منتشر کن' }}</button>
+                </form>
+                <form method="post" action="{{ url_for('admin.product_featured', product_id=product.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-ghost btn-sm">{{ 'حذف از ویژه' if product.is_featured else 'ویژه کن' }}</button>
+                </form>
+                <form method="post" action="{{ url_for('admin.product_delete', product_id=product.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-danger btn-sm" data-confirm="محصول آرشیو شود؟ (سوابق سفارش حفظ می‌شود)">آرشیو</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="8"><div class="empty"><div class="icon">📦</div><p>محصولی یافت نشد.</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {{ pagination(page) }}
+</div>
+{% endblock %}

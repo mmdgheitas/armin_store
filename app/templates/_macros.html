@@ -1,0 +1,117 @@
+{# ماکروهای مشترک قالب #}
+
+{% macro stars(rating, count=None, show_count=True) -%}
+<span class="stars" aria-label="امتیاز {{ rating }} از ۵">
+  {%- set rounded = (rating|float)|round(0, 'common')|int -%}
+  {%- for i in range(1, 6) -%}
+    <span class="{{ 'empty' if i > rounded else '' }}">★</span>
+  {%- endfor -%}
+</span>
+{%- if show_count and count is not none -%}
+  <span class="tiny text-muted">({{ count|number }})</span>
+{%- endif -%}
+{%- endmacro %}
+
+{% macro product_card(product) -%}
+{% set variant = product.default_variant %}
+<article class="product-card">
+  <a class="product-thumb" href="{{ url_for('storefront.product_detail', slug=product.slug) }}" aria-label="{{ product.name }}">
+    {% if product.image_url %}
+      <img src="{{ product.image_url }}" alt="{{ product.name }}" loading="lazy">
+    {% else %}
+      <div class="thumb-placeholder">🛍️</div>
+    {% endif %}
+    <div class="badge-stack">
+      {% if product.discount_percent > 0 %}<span class="badge badge-discount">{{ product.discount_percent|number }}٪ تخفیف</span>{% endif %}
+      {% if product.is_featured %}<span class="badge badge-featured">ویژه</span>{% endif %}
+      {% if product.is_digital %}<span class="badge badge-digital">دانلودی</span>{% endif %}
+      {% if not product.in_stock %}<span class="badge badge-out">ناموجود</span>{% endif %}
+    </div>
+  </a>
+  <div class="product-body">
+    {% if product.category %}
+      <div class="tiny text-muted">{{ product.category.name }}</div>
+    {% endif %}
+    <h3 class="product-title"><a href="{{ url_for('storefront.product_detail', slug=product.slug) }}">{{ product.name }}</a></h3>
+    <div class="product-meta">
+      {{ stars(product.rating_avg, product.rating_count) }}
+      {% if not product.in_stock %}<span class="tiny text-danger">ناموجود</span>{% endif %}
+    </div>
+    <div class="price-row">
+      <span class="price">{{ product.price|money }}</span>
+      {% if product.discount_percent > 0 %}
+        <span class="price-old">{{ product.compare_at_price|money }}</span>
+      {% endif %}
+    </div>
+    <div class="card-actions">
+      {% if variant and product.in_stock %}
+        <form method="post" action="{{ url_for('cart.add') }}" data-cart-form class="d-flex" style="flex:1">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="variant_id" value="{{ variant.id }}">
+          <input type="hidden" name="quantity" value="1">
+          <button type="submit" class="btn btn-primary btn-add">افزودن به سبد</button>
+        </form>
+      {% elif product.in_stock %}
+        <a class="btn btn-outline btn-add" href="{{ url_for('storefront.product_detail', slug=product.slug) }}">مشاهده محصول</a>
+      {% else %}
+        <button type="button" class="btn btn-ghost btn-add" disabled>ناموجود</button>
+      {% endif %}
+      <button type="button" class="wish-btn" data-wishlist="{{ product.id }}" title="افزودن به علاقه‌مندی‌ها" aria-label="علاقه‌مندی">
+        <span data-wish-icon>♡</span>
+      </button>
+    </div>
+  </div>
+</article>
+{%- endmacro %}
+
+{% macro pagination(page) -%}
+{% if page and page.pages and page.pages > 1 %}
+<nav class="pagination" aria-label="صفحه‌بندی">
+  {% set qs = request.args.to_dict() %}
+  {% set _ = qs.pop('page', None) %}
+  {% set base_args = qs.items()|list %}
+  {% if page.has_prev %}
+    <a href="{{ request.path }}?{% for k, v in base_args %}{{ k|urlencode }}={{ v|urlencode }}&{% endfor %}page={{ page.prev_num }}" rel="prev">قبلی</a>
+  {% endif %}
+  {% for num in page.iter_pages() %}
+    {% if num %}
+      {% if num == page.page %}
+        <span class="current">{{ num|number }}</span>
+      {% else %}
+        <a href="{{ request.path }}?{% for k, v in base_args %}{{ k|urlencode }}={{ v|urlencode }}&{% endfor %}page={{ num }}">{{ num|number }}</a>
+      {% endif %}
+    {% else %}
+      <span class="dots">…</span>
+    {% endif %}
+  {% endfor %}
+  {% if page.has_next %}
+    <a href="{{ request.path }}?{% for k, v in base_args %}{{ k|urlencode }}={{ v|urlencode }}&{% endfor %}page={{ page.next_num }}" rel="next">بعدی</a>
+  {% endif %}
+</nav>
+{% endif %}
+{%- endmacro %}
+
+{% macro status_badge(status, label=None) -%}
+{% set colors = {
+  'success': 'success', 'paid': 'success', 'delivered': 'success', 'approved': 'success',
+  'published': 'success', 'active': 'success', 'answered': 'success', 'completed': 'success',
+  'pending': 'warning', 'pending_payment': 'warning', 'unpaid': 'warning', 'processing': 'info',
+  'initiated': 'info', 'shipped': 'info', 'awaiting_payment': 'warning',
+  'failed': 'danger', 'cancelled': 'danger', 'rejected': 'danger', 'returned': 'danger',
+  'refunded': 'danger', 'expired': 'danger', 'closed': 'muted', 'draft': 'muted',
+  'unknown': 'muted', 'inactive': 'muted', 'pending_review': 'warning'
+} %}
+<span class="badge badge-{{ colors.get(status, 'muted') }}">{{ label or order_status_labels.get(status, status) }}</span>
+{%- endmacro %}
+
+{% macro empty_state(icon, title, text='') -%}
+<div class="empty-state">
+  <div class="icon">{{ icon }}</div>
+  <h3>{{ title }}</h3>
+  {% if text %}<p>{{ text }}</p>{% endif %}
+</div>
+{%- endmacro %}
+
+{% macro field_error(name, errors) -%}
+{% if errors and errors.get(name) %}<small class="text-danger tiny">{{ errors.get(name) }}</small>{% endif %}
+{%- endmacro %}

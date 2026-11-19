@@ -1,0 +1,86 @@
+{% extends "admin/base.html" %}
+{% block title %}نوار تبلیغاتی{% endblock %}
+{% block page_title %}نوار تبلیغاتی{% endblock %}
+{% block page_sub %}{{ ads|length }} تبلیغ{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>نوار تبلیغاتی بالای سایت</h1><p>متن، لینک و زمان‌بندی نمایش را مدیریت کنید.</p></div></div>
+<div class="alert alert-info">تبلیغ فعال و در بازه زمانی جاری، در بالای همه صفحات فروشگاه نمایش داده می‌شود.</div>
+
+<div class="dashboard-grid">
+  <div class="panel">
+    <div class="panel-head"><h2>فهرست تبلیغ‌ها</h2></div>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>متن</th><th>لینک</th><th>بازه نمایش</th><th>وضعیت</th><th>عملیات</th></tr></thead>
+        <tbody>
+          {% for ad in ads %}
+            <tr>
+              <td>
+                <span class="badge" style="background:{{ ad.background_color }};color:{{ ad.text_color }}">{{ ad.text }}</span>
+                <details class="mt-1">
+                  <summary class="tiny" style="cursor:pointer">ویرایش</summary>
+                  <form method="post" action="{{ url_for('admin.ad_save', ad_id=ad.id) }}" class="mt-1" style="min-width:280px">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="field"><label>متن</label><input type="text" name="text" value="{{ ad.text }}" required maxlength="300"></div>
+                    <div class="field mt-1"><label>لینک</label><input type="url" name="link" value="{{ ad.link or '' }}" dir="ltr"></div>
+                    <div class="d-flex gap-1 mt-1">
+                      <div class="field"><label>رنگ پس‌زمینه</label><input type="color" name="background_color" value="{{ ad.background_color }}"></div>
+                      <div class="field"><label>رنگ متن</label><input type="color" name="text_color" value="{{ ad.text_color }}"></div>
+                    </div>
+                    <div class="field mt-1"><label>شروع</label><input type="datetime-local" name="starts_at" value="{{ ad.starts_at.strftime('%Y-%m-%dT%H:%M') if ad.starts_at else '' }}"></div>
+                    <div class="field mt-1"><label>پایان</label><input type="datetime-local" name="expires_at" value="{{ ad.expires_at.strftime('%Y-%m-%dT%H:%M') if ad.expires_at else '' }}"></div>
+                    <div class="field mt-1"><label>ترتیب</label><input type="number" name="sort_order" value="{{ ad.sort_order }}"></div>
+                    <label class="checkbox-line mt-1"><input type="checkbox" name="is_active" value="1" {{ 'checked' if ad.is_active }}> فعال</label>
+                    <button type="submit" class="btn btn-primary btn-sm mt-1">ذخیره</button>
+                  </form>
+                </details>
+              </td>
+              <td class="tiny" dir="ltr">{{ ad.link or '—' }}</td>
+              <td class="tiny">{% if ad.starts_at %}{{ ad.starts_at|jdatetime }}{% endif %} {% if ad.expires_at %}→ {{ ad.expires_at|jdatetime }}{% endif %}{% if not ad.starts_at and not ad.expires_at %}همیشه{% endif %}</td>
+              <td>
+                {% if ad.is_visible_now() %}<span class="badge badge-success">در حال نمایش</span>
+                {% elif ad.is_active %}<span class="badge badge-warning">زمان‌بندی‌شده</span>
+                {% else %}<span class="badge badge-muted">غیرفعال</span>{% endif %}
+              </td>
+              <td>
+                <div class="actions">
+                  <form method="post" action="{{ url_for('admin.ad_toggle', ad_id=ad.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="btn btn-ghost btn-sm">{{ 'غیرفعال' if ad.is_active else 'فعال' }}</button>
+                  </form>
+                  <form method="post" action="{{ url_for('admin.ad_delete', ad_id=ad.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="btn btn-danger btn-sm" data-confirm="تبلیغ حذف شود؟">حذف</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          {% else %}
+            <tr><td colspan="5"><div class="empty"><p>تبلیغی ثبت نشده است.</p></div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head"><h2>افزودن تبلیغ</h2></div>
+    <div class="panel-body">
+      <form method="post" action="{{ url_for('admin.ad_save') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="field"><label for="text">متن <span class="req">*</span></label><input type="text" id="text" name="text" required maxlength="300" placeholder="ارسال رایگان برای خرید بالای ۵۰۰ هزار تومان"></div>
+        <div class="field mt-1"><label for="link">لینک (اختیاری)</label><input type="url" id="link" name="link" dir="ltr" placeholder="https://..."></div>
+        <div class="d-flex gap-1 mt-1">
+          <div class="field"><label>پس‌زمینه</label><input type="color" name="background_color" value="#111827"></div>
+          <div class="field"><label>متن</label><input type="color" name="text_color" value="#ffffff"></div>
+        </div>
+        <div class="field mt-1"><label>شروع</label><input type="datetime-local" name="starts_at"></div>
+        <div class="field mt-1"><label>پایان</label><input type="datetime-local" name="expires_at"></div>
+        <div class="field mt-1"><label>ترتیب</label><input type="number" name="sort_order" value="0"></div>
+        <label class="checkbox-line mt-1"><input type="checkbox" name="is_active" value="1" checked> فعال</label>
+        <button type="submit" class="btn btn-primary btn-block mt-2">افزودن تبلیغ</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ 'ویرایش کاربر' if user else 'کاربر جدید' }}{% endblock %}
+{% block page_title %}{{ 'ویرایش کاربر' if user else 'کاربر جدید' }}{% endblock %}
+{% block page_sub %}{{ user.full_name if user else 'کارکنان پنل' }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ 'ویرایش کاربر' if user else 'کاربر جدید' }}</h1><p>برای دسترسی به پنل، حداقل یک نقش انتخاب کنید.</p></div>
+  <div class="page-actions"><a class="btn btn-outline" href="{{ url_for('admin.users') }}">بازگشت</a></div>
+</div>
+<div class="panel" style="max-width:820px">
+  <div class="panel-body">
+    <form method="post" action="{{ url_for('admin.user_save', user_id=user.id) if user else url_for('admin.user_save') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-grid">
+        <div class="field"><label for="full_name">نام و نام خانوادگی <span class="req">*</span></label><input type="text" id="full_name" name="full_name" value="{{ user.full_name if user else '' }}" required maxlength="150"></div>
+        <div class="field"><label for="mobile">موبایل <span class="req">*</span></label><input type="tel" id="mobile" name="mobile" value="{{ user.mobile if user else '' }}" required pattern="09[0-9]{9}" maxlength="11" dir="ltr" placeholder="09121234567"></div>
+        <div class="field"><label for="email">ایمیل</label><input type="email" id="email" name="email" value="{{ (user.email or '') if user else '' }}" maxlength="190" dir="ltr"></div>
+        <div class="field"><label for="password">{{ 'رمز عبور جدید' if user else 'رمز عبور' }} {% if not user %}<span class="req">*</span>{% endif %}</label><input type="password" id="password" name="password" autocomplete="new-password" {{ 'required' if not user }} placeholder="حداقل ۸ کاراکتر شامل حرف و عدد"></div>
+      </div>
+
+      <div class="field mt-2">
+        <label>نقش‌ها</label>
+        <div class="checkbox-grid">
+          {% set current_ids = user.roles|map(attribute='id')|list if user else [] %}
+          {% for role in roles %}
+            <label class="checkbox-line">
+              <input type="checkbox" name="role_ids[]" value="{{ role.id }}" {{ 'checked' if role.id in current_ids }}>
+              {{ role.title }} <span class="tiny muted" dir="ltr">({{ role.name }})</span>
+            </label>
+          {% endfor %}
+        </div>
+        {% if not roles %}<div class="alert alert-warning mt-1 mb-0">نقشی تعریف نشده است. ابتدا از بخش «نقش‌ها» نقش بسازید یا دیتابیس را seed کنید.</div>{% endif %}
+      </div>
+
+      <div class="mt-2">
+        <label class="checkbox-line"><input type="checkbox" name="is_active" value="1" {{ 'checked' if not user or user.is_active }}> حساب فعال باشد</label>
+        <label class="checkbox-line mt-1"><input type="checkbox" name="must_change_password" value="1" {{ 'checked' if user and user.must_change_password }}> کاربر در ورود بعدی رمز را تغییر دهد</label>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">💾 ذخیره کاربر</button>
+        <a class="btn btn-outline" href="{{ url_for('admin.users') }}">انصراف</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

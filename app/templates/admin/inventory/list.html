@@ -1,0 +1,72 @@
+{% extends "admin/base.html" %}
+{% from "_macros.html" import pagination %}
+{% block title %}انبار{% endblock %}
+{% block page_title %}انبار و موجودی{% endblock %}
+{% block page_sub %}ارزش موجودی: {{ value.cost_value|money }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>مدیریت موجودی</h1><p>اصلاح موجودی، مشاهده رزروها و ارزش انبار</p></div>
+  <div class="page-actions">
+    <a class="btn btn-outline" href="{{ url_for('admin.inventory_movements') }}">گردش انبار</a>
+    <a class="btn btn-outline" href="{{ url_for('admin.reports_inventory') }}">گزارش انبار</a>
+  </div>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card accent"><div class="top"><span class="label">ارزش کل موجودی</span><span class="icon">💰</span></div><div class="value">{{ value.cost_value|money }}</div><div class="hint">بر اساس قیمت خرید</div></div>
+  <div class="stat-card"><div class="top"><span class="label">تعداد تنوع‌ها</span><span class="icon">🏷️</span></div><div class="value">{{ page.total|number }}</div><div class="hint">فیلترشده</div></div>
+</div>
+
+<div class="panel">
+  <div class="panel-head">
+    <form method="get" class="filter-bar w-100">
+      <div class="field grow"><label>جستجو</label><input type="text" name="q" value="{{ q }}" placeholder="نام محصول یا SKU"></div>
+      <div class="field">
+        <label>وضعیت موجودی</label>
+        <select name="stock">
+          <option value="">همه</option>
+          <option value="low" {{ 'selected' if stock_filter == 'low' }}>کم</option>
+          <option value="out" {{ 'selected' if stock_filter == 'out' }}>ناموجود</option>
+        </select>
+      </div>
+      <div class="field" style="max-width:120px"><button type="submit" class="btn btn-primary btn-block">فیلتر</button></div>
+    </form>
+  </div>
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>محصول</th><th>SKU</th><th>موجودی</th><th>رزرو فعال</th><th>قابل فروش</th><th>قیمت</th><th>حد هشدار</th><th>اصلاح موجودی</th></tr></thead>
+      <tbody>
+        {% for variant, product in page.items %}
+          <tr>
+            <td><a href="{{ url_for('admin.product_edit', product_id=product.id) }}">{{ product.name }}</a><div class="tiny muted">{{ variant.label_with_names }}</div></td>
+            <td class="tiny" dir="ltr">{{ variant.sku }}</td>
+            <td class="num"><span class="badge {{ 'badge-danger' if variant.stock_quantity <= 0 else ('badge-warning' if variant.stock_quantity <= variant.low_stock_threshold else 'badge-success') }}">{{ variant.stock_quantity|number }}</span></td>
+            <td class="num">{{ (variant.stock_quantity - availability.get(variant.id, variant.stock_quantity))|number }}</td>
+            <td class="num"><strong>{{ availability.get(variant.id, variant.stock_quantity)|number }}</strong></td>
+            <td class="num">{{ variant.effective_price|money }}</td>
+            <td class="num">{{ variant.low_stock_threshold|number }}</td>
+            <td>
+              <form method="post" action="{{ url_for('admin.inventory_adjust') }}" class="d-flex gap-1 flex-wrap items-center">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="variant_id" value="{{ variant.id }}">
+                <select name="movement_type" style="width:110px" aria-label="نوع">
+                  {% for value, label in movement_types if value in ['in', 'out', 'adjust', 'return'] %}
+                    <option value="{{ value }}">{{ label }}</option>
+                  {% endfor %}
+                </select>
+                <input type="number" name="quantity" value="1" style="width:70px" min="0" aria-label="تعداد">
+                <label class="checkbox-line tiny"><input type="checkbox" name="absolute" value="1"> مقدار مطلق</label>
+                <input type="text" name="reason" placeholder="دلیل" style="width:120px">
+                <button type="submit" class="btn btn-primary btn-sm">ثبت</button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="8"><div class="empty"><p>موردی یافت نشد.</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {{ pagination(page) }}
+</div>
+{% endblock %}

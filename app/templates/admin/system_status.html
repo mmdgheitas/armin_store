@@ -1,0 +1,53 @@
+{% extends "admin/base.html" %}
+{% block title %}وضعیت سیستم{% endblock %}
+{% block page_title %}وضعیت سیستم{% endblock %}
+{% block page_sub %}پیش‌نیازها و نسخه دیتابیس{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>وضعیت سیستم</h1><p>بررسی سلامت محیط اجرا و مهاجرت‌های دیتابیس</p></div>
+  <div class="page-actions">
+    <a class="btn btn-outline" href="{{ url_for('admin.backups') }}">پشتیبان‌گیری</a>
+    <a class="btn btn-outline" href="{{ url_for('healthcheck') }}" target="_blank">/health</a>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-head"><h2>پیش‌نیازهای سرور</h2></div>
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>مورد</th><th>وضعیت</th><th>جزئیات</th><th>الزامی</th></tr></thead>
+      <tbody>
+        {% for check in checks %}
+          <tr>
+            <td>{{ check.label }}</td>
+            <td>{% if check.ok %}<span class="badge badge-success">سالم</span>{% else %}<span class="badge badge-danger">مشکل</span>{% endif %}</td>
+            <td class="tiny muted">{{ check.detail }}</td>
+            <td>{% if check.required %}<span class="badge badge-warning">بله</span>{% else %}<span class="badge badge-muted">خیر</span>{% endif %}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-head"><h2>مهاجرت‌های دیتابیس</h2><span class="sub">نسخه فعلی: {{ schema.current }} — نسخه هدف: {{ schema.target }}</span></div>
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>نسخه</th><th>توضیح</th><th>وضعیت</th></tr></thead>
+      <tbody>
+        {% for migration in schema.migrations %}
+          <tr>
+            <td>{{ migration.version }}</td>
+            <td>{{ migration.description }}</td>
+            <td>{% if migration.applied %}<span class="badge badge-success">اجرا شده</span>{% else %}<span class="badge badge-warning">در انتظار</span>{% endif %}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if schema.pending %}
+    <div class="panel-body"><div class="alert alert-warning mb-0">مهاجرت‌های در انتظار وجود دارد. با اجرای دستور <code>flask db upgrade</code> یا راه‌اندازی مجدد برنامه اعمال می‌شود.</div></div>
+  {% endif %}
+</div>
+{% endblock %}

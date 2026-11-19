@@ -1,0 +1,65 @@
+{% extends "account/base.html" %}
+{% block title %}حساب کاربری — {{ store_name }}{% endblock %}
+{% block account_content %}
+<div class="page-header" style="padding-top:0">
+  <h1>سلام {{ current_user.full_name }} 👋</h1>
+  <p>خلاصه فعالیت حساب شما</p>
+</div>
+
+{% if current_user.must_change_password %}
+  <div class="alert alert-warning">رمز عبور شما موقت است. لطفاً <a href="{{ url_for('account.password') }}">رمز عبور را تغییر دهید</a>.</div>
+{% endif %}
+{% if not current_user.is_verified %}
+  <div class="alert alert-info">شماره موبایل شما هنوز تأیید نشده است. <a href="{{ url_for('auth.verify_mobile') }}">تأیید شماره موبایل</a></div>
+{% endif %}
+
+<div class="stat-grid">
+  <div class="stat-box"><div class="label">کل سفارش‌ها</div><div class="value">{{ orders_count|number }}</div></div>
+  <div class="stat-box"><div class="label">سفارش‌های پرداخت‌شده</div><div class="value">{{ paid_count|number }}</div></div>
+  <div class="stat-box"><div class="label">محصولات دانلودی</div><div class="value">{{ digital_items|number }}</div></div>
+  <div class="stat-box"><div class="label">اعلان‌های جدید</div><div class="value">{{ notifications|selectattr('is_read', 'equalto', false)|list|length|number }}</div></div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-head">
+    <h3>آخرین سفارش‌ها</h3>
+    <a href="{{ url_for('account.orders') }}" class="small">همه سفارش‌ها ←</a>
+  </div>
+  {% if recent_orders %}
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>شماره سفارش</th><th>تاریخ</th><th>مبلغ</th><th>وضعیت</th><th></th></tr></thead>
+        <tbody>
+          {% for order in recent_orders %}
+            <tr>
+              <td>{{ order.order_number }}</td>
+              <td>{{ order.created_at|jdate }}</td>
+              <td>{{ order.total_amount|money }}</td>
+              <td><span class="badge {{ 'badge-success' if order.payment_status == 'paid' else 'badge-warning' }}">{{ order.status_label }}</span></td>
+              <td><a href="{{ url_for('account.order_detail', order_number=order.order_number) }}" class="small">جزئیات</a></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="text-muted small mb-0">هنوز سفارشی ثبت نکرده‌اید. <a href="{{ url_for('storefront.product_list') }}">شروع خرید</a></p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-head"><h3>اعلان‌های اخیر</h3><a href="{{ url_for('account.notifications') }}" class="small">همه ←</a></div>
+  {% if notifications %}
+    <ul style="list-style:none;padding:0;margin:0">
+      {% for item in notifications %}
+        <li style="padding:10px 0;border-bottom:1px solid var(--border)">
+          <strong class="small">{{ item.title }}</strong>
+          <div class="tiny text-muted">{{ item.created_at|timeago }}</div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="text-muted small mb-0">اعلان جدیدی ندارید.</p>
+  {% endif %}
+</div>
+{% endblock %}

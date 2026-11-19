@@ -1,0 +1,49 @@
+{% extends "admin/base.html" %}
+{% from "_macros.html" import pagination %}
+{% block title %}گردش انبار{% endblock %}
+{% block page_title %}گردش انبار{% endblock %}
+{% block page_sub %}تاریخچه ورود و خروج کالا{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>گردش انبار</h1><p>همه تغییرات موجودی با ثبت دلیل و کاربر</p></div>
+  <div class="page-actions"><a class="btn btn-outline" href="{{ url_for('admin.inventory') }}">بازگشت به انبار</a></div>
+</div>
+<div class="panel">
+  <div class="panel-head">
+    <form method="get" class="filter-bar w-100">
+      <div class="field">
+        <label>نوع گردش</label>
+        <select name="type">
+          <option value="">همه</option>
+          {% for value, label in movement_types %}<option value="{{ value }}" {{ 'selected' if selected_type == value }}>{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+      {% if variant_id %}<input type="hidden" name="variant" value="{{ variant_id }}">{% endif %}
+      <div class="field" style="max-width:120px"><button type="submit" class="btn btn-primary btn-block">فیلتر</button></div>
+    </form>
+  </div>
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>تاریخ</th><th>محصول</th><th>SKU</th><th>نوع</th><th>تعداد</th><th>قبل</th><th>بعد</th><th>دلیل</th><th>مرجع</th></tr></thead>
+      <tbody>
+        {% for movement in page.items %}
+          <tr>
+            <td class="tiny">{{ movement.created_at|jdatetime }}</td>
+            <td>{{ movement.product.name if movement.product else '—' }}<div class="tiny muted">{{ movement.variant.label_with_names if movement.variant else '' }}</div></td>
+            <td class="tiny" dir="ltr">{{ movement.variant.sku if movement.variant else '—' }}</td>
+            <td><span class="badge {{ 'badge-success' if movement.quantity > 0 else 'badge-warning' }}">{{ {'in': 'ورود', 'out': 'خروج', 'adjust': 'اصلاح', 'sale': 'فروش', 'reserve': 'رزرو', 'release': 'آزادسازی', 'return': 'مرجوعی'}.get(movement.movement_type, movement.movement_type) }}</span></td>
+            <td class="num">{{ movement.quantity|number }}</td>
+            <td class="num">{{ movement.previous_stock|number }}</td>
+            <td class="num">{{ movement.new_stock|number }}</td>
+            <td class="tiny">{{ movement.reason or '—' }}</td>
+            <td class="tiny">{{ movement.reference_type or '' }} {{ movement.reference_id or '' }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="9"><div class="empty"><p>گردشی ثبت نشده است.</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {{ pagination(page) }}
+</div>
+{% endblock %}
