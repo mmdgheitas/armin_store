@@ -1,0 +1,109 @@
+{% extends "admin/_layout.html" %}
+{% block content %}
+<h1 style="margin-top:0;">پیشخوان مدیریت</h1>
+
+<div class="kpi-grid">
+  <div class="kpi-card">
+    <div class="kpi-label">فروش امروز</div>
+    <div class="kpi-value">{{ sales_today | toman }}</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">فروش ۷ روز اخیر</div>
+    <div class="kpi-value">{{ sales_7d | toman }}</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">فروش ۳۰ روز اخیر</div>
+    <div class="kpi-value">{{ sales_30d | toman }}</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">دیدگاه‌های در انتظار تایید</div>
+    <div class="kpi-value">{{ admin_counts.pending_reviews | fa_digits }}</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">پرداخت‌های ناموفق</div>
+    <div class="kpi-value" style="color:var(--danger);">{{ admin_counts.failed_payments | fa_digits }}</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">نمودار فروش ۱۴ روز اخیر (تومان)</h2>
+  </div>
+  <div id="revenue-chart"></div>
+  <script type="application/json" id="revenue-chart-data">{{ {"labels": chart_labels, "values": chart_values_toman} | to_json | safe }}</script>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2 class="card-title">وضعیت سفارش‌ها</h2></div>
+  <div style="display:flex;flex-wrap:wrap;gap:10px;">
+    {% for st, label in status_labels.items() %}
+    <a href="{{ url_for('admin.orders_list', order_status=st) }}" class="badge badge-info" style="padding:6px 12px;font-size:0.86rem;">
+      {{ label }}: <strong>{{ status_counts.get(st, 0) | fa_digits }}</strong>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px;">
+  <div class="card table-wrap">
+    <div class="card-header">
+      <h2 class="card-title">آخرین سفارش‌ها</h2>
+      <a href="{{ url_for('admin.orders_list') }}" class="btn btn-sm">همه سفارش‌ها</a>
+    </div>
+    <table class="admin-table">
+      <thead><tr><th>شماره</th><th>مشتری</th><th>مبلغ</th><th>وضعیت</th></tr></thead>
+      <tbody>
+        {% for o in latest_orders %}
+        <tr>
+          <td dir="ltr"><a href="{{ url_for('admin.order_detail', order_id=o.id) }}" style="color:var(--primary);font-weight:700;">{{ o.order_number }}</a></td>
+          <td>{{ o.customer_name }}</td>
+          <td>{{ o.total_rial | toman }}</td>
+          <td><span class="badge badge-info">{{ status_labels.get(o.order_status, o.order_status) }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card table-wrap">
+    <div class="card-header">
+      <h2 class="card-title">هشدار کمبود و اتمام موجودی</h2>
+      <a href="{{ url_for('admin.inventory_manage', filter='low') }}" class="btn btn-sm">مدیریت انبار</a>
+    </div>
+    <table class="admin-table">
+      <thead><tr><th>محصول</th><th>کد</th><th>موجودی</th></tr></thead>
+      <tbody>
+        {% for v in low_stock_variants %}
+        <tr>
+          <td><a href="{{ url_for('admin.product_edit', product_id=v.product_id) }}">{{ v.product_title }} ({{ v.label }})</a></td>
+          <td dir="ltr">{{ v.sku }}</td>
+          <td>
+            {% if v.stock_quantity <= 0 %}
+            <span class="badge badge-danger">ناموجود (۰)</span>
+            {% else %}
+            <span class="badge badge-warning">{{ v.stock_quantity | fa_digits }}</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card table-wrap">
+  <div class="card-header"><h2 class="card-title">پرفروش‌ترین محصولات</h2></div>
+  <table class="admin-table">
+    <thead><tr><th>محصول</th><th>تعداد فروش</th><th>درآمد کل</th></tr></thead>
+    <tbody>
+      {% for tp in top_products %}
+      <tr>
+        <td><a href="{{ url_for('admin.product_edit', product_id=tp.id) }}">{{ tp.title }}</a></td>
+        <td>{{ tp.total_sold | fa_digits }}</td>
+        <td>{{ tp.revenue_rial | toman }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

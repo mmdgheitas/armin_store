@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="account-layout">
+  {% include "account/_nav.html" %}
+  <div class="card">
+    <h1 style="margin-top:0;font-size:1.25rem;">لیست علاقه‌مندی‌ها</h1>
+    {% if items %}
+    <div class="products-grid">
+      {% for p in items %}
+        <div class="product-card">
+          <a href="{{ url_for('shop.product_detail', slug=p.slug) }}" class="product-thumb">
+            {% if p.cover_thumb %}<img src="{{ url_for('shop.serve_media', filename=p.cover_thumb) }}" alt="{{ p.title }}" loading="lazy">{% endif %}
+          </a>
+          <div class="product-body">
+            <h3 class="product-title"><a href="{{ url_for('shop.product_detail', slug=p.slug) }}">{{ p.title }}</a></h3>
+            <div class="price-current">{{ p.min_price_rial | toman if p.total_stock > 0 else 'ناموجود' }}</div>
+            <button type="button" class="btn btn-outline btn-sm" data-wishlist-toggle="{{ p.id }}">حذف از علاقه‌مندی‌ها</button>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+    {% else %}
+      <p style="color:var(--text-muted);">لیست علاقه‌مندی‌های شما خالی است.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

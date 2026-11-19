@@ -1,0 +1,46 @@
+{% extends "admin/_layout.html" %}
+{% block content %}
+<div class="card-header">
+  <h1 style="margin:0;">پروفایل مشتری: {{ customer.full_name }}</h1>
+  <a href="{{ url_for('admin.customers_list') }}" class="btn">بازگشت</a>
+</div>
+
+<div class="card">
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="edit">
+    <div class="form-row">
+      <div class="form-group"><label>نام و نام خانوادگی</label><input type="text" name="full_name" value="{{ customer.full_name }}" class="form-control"></div>
+      <div class="form-group"><label>موبایل</label><input type="tel" name="mobile" value="{{ customer.mobile or '' }}" class="form-control" dir="ltr"></div>
+      <div class="form-group"><label>ایمیل</label><input type="email" name="email" value="{{ customer.email or '' }}" class="form-control" dir="ltr"></div>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button type="submit" class="btn btn-primary btn-sm">ذخیره تغییرات</button>
+    </div>
+  </form>
+  <form method="post" style="margin-top:10px;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="toggle_block">
+    <button type="submit" class="btn btn-sm {{ 'btn-primary' if customer.is_blocked else 'btn-danger' }}">
+      {{ 'رفع مسدودیت مشتری' if customer.is_blocked else 'مسدود کردن مشتری' }}
+    </button>
+  </form>
+</div>
+
+<div class="card table-wrap">
+  <h2 class="card-title" style="margin-bottom:10px;">سفارش‌های مشتری</h2>
+  <table class="admin-table">
+    <thead><tr><th>شماره</th><th>مبلغ</th><th>وضعیت</th><th>تاریخ</th></tr></thead>
+    <tbody>
+      {% for o in orders %}
+      <tr>
+        <td dir="ltr"><a href="{{ url_for('admin.order_detail', order_id=o.id) }}" style="color:var(--primary);font-weight:700;">{{ o.order_number }}</a></td>
+        <td>{{ o.total_rial | toman }}</td>
+        <td>{{ status_labels.get(o.order_status, o.order_status) }}</td>
+        <td>{{ o.created_at | jalali }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="account-layout">
+  {% include "account/_nav.html" %}
+  <div class="card">
+    <h1 style="margin-top:0;font-size:1.25rem;">سفارش‌های من</h1>
+    {% if orders %}
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th>شماره سفارش</th><th>تاریخ</th><th>اقلام</th><th>مبلغ کل</th><th>پرداخت</th><th>وضعیت</th><th></th></tr></thead>
+        <tbody>
+          {% for o in orders %}
+          <tr>
+            <td dir="ltr">{{ o.order_number }}</td>
+            <td>{{ o.created_at | jalali }}</td>
+            <td>{{ o.item_count | fa_digits }}</td>
+            <td>{{ o.total_rial | toman }}</td>
+            <td>{{ payment_labels.get(o.payment_status, o.payment_status) }}</td>
+            <td><span class="badge badge-info">{{ status_labels.get(o.order_status, o.order_status) }}</span></td>
+            <td><a href="{{ url_for('account.order_detail', order_number=o.order_number) }}" class="btn btn-outline btn-sm">مشاهده</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p style="color:var(--text-muted);">سفارشی ثبت نشده است.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

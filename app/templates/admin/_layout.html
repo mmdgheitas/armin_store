@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>{% block title %}پنل مدیریت | {{ site.site_name }}{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css', v=asset_v) }}">
+</head>
+<body>
+  <div class="admin-shell">
+    <aside class="admin-sidebar">
+      <div class="admin-brand">مدیریت {{ site.site_name }}</div>
+      {% if has_permission('dashboard') %}
+      <a href="{{ url_for('admin.dashboard') }}" class="admin-nav-link {% if request.endpoint == 'admin.dashboard' %}active{% endif %}">پیشخوان</a>
+      {% endif %}
+      {% if has_permission('orders') %}
+      <a href="{{ url_for('admin.orders_list') }}" class="admin-nav-link {% if 'order' in (request.endpoint or '') %}active{% endif %}">
+        <span>سفارش‌ها</span>
+        {% if admin_counts.pending_orders %}<span class="nav-pill">{{ admin_counts.pending_orders | fa_digits }}</span>{% endif %}
+      </a>
+      {% endif %}
+      {% if has_permission('products') %}
+      <a href="{{ url_for('admin.products_list') }}" class="admin-nav-link {% if 'product' in (request.endpoint or '') %}active{% endif %}">محصولات</a>
+      {% endif %}
+      {% if has_permission('categories') %}
+      <a href="{{ url_for('admin.categories_manage') }}" class="admin-nav-link {% if request.endpoint == 'admin.categories_manage' %}active{% endif %}">دسته‌بندی‌ها</a>
+      {% endif %}
+      {% if has_permission('inventory') %}
+      <a href="{{ url_for('admin.inventory_manage') }}" class="admin-nav-link {% if request.endpoint == 'admin.inventory_manage' %}active{% endif %}">
+        <span>انبار و موجودی</span>
+        {% if admin_counts.low_stock %}<span class="nav-pill">{{ admin_counts.low_stock | fa_digits }}</span>{% endif %}
+      </a>
+      <a href="{{ url_for('admin.back_in_stock_list') }}" class="admin-nav-link {% if request.endpoint == 'admin.back_in_stock_list' %}active{% endif %}">اطلاع‌رسانی موجودی</a>
+      {% endif %}
+      {% if has_permission('customers') %}
+      <a href="{{ url_for('admin.customers_list') }}" class="admin-nav-link {% if 'customer' in (request.endpoint or '') %}active{% endif %}">مشتریان</a>
+      {% endif %}
+      {% if has_permission('reviews') %}
+      <a href="{{ url_for('admin.reviews_manage') }}" class="admin-nav-link {% if request.endpoint == 'admin.reviews_manage' %}active{% endif %}">
+        <span>دیدگاه‌ها</span>
+        {% if admin_counts.pending_reviews %}<span class="nav-pill">{{ admin_counts.pending_reviews | fa_digits }}</span>{% endif %}
+      </a>
+      {% endif %}
+      {% if has_permission('coupons') %}
+      <a href="{{ url_for('admin.coupons_manage') }}" class="admin-nav-link {% if request.endpoint == 'admin.coupons_manage' %}active{% endif %}">کدهای تخفیف</a>
+      {% endif %}
+      {% if has_permission('cms') %}
+      <a href="{{ url_for('admin.homepage_manage') }}" class="admin-nav-link {% if request.endpoint == 'admin.homepage_manage' %}active{% endif %}">صفحه اصلی و بنرها</a>
+      <a href="{{ url_for('admin.pages_manage') }}" class="admin-nav-link {% if request.endpoint == 'admin.pages_manage' %}active{% endif %}">صفحات ثابت</a>
+      {% endif %}
+      {% if has_permission('redirects') %}
+      <a href="{{ url_for('admin.redirects_manage') }}" class="admin-nav-link {% if request.endpoint == 'admin.redirects_manage' %}active{% endif %}">ریدایرکت‌ها (301)</a>
+      {% endif %}
+      {% if has_permission('payments') %}
+      <a href="{{ url_for('admin.payments_manage') }}" class="admin-nav-link {% if request.endpoint == 'admin.payments_manage' %}active{% endif %}">
+        <span>پرداخت‌ها و درگاه</span>
+        {% if admin_counts.failed_payments %}<span class="nav-pill">{{ admin_counts.failed_payments | fa_digits }}</span>{% endif %}
+      </a>
+      {% endif %}
+      {% if has_permission('sms') %}
+      <a href="{{ url_for('admin.sms_manage') }}" class="admin-nav-link {% if request.endpoint == 'admin.sms_manage' %}active{% endif %}">پیامک (SMS.ir)</a>
+      {% endif %}
+      {% if has_permission('reports') %}
+      <a href="{{ url_for('admin.reports_view') }}" class="admin-nav-link {% if request.endpoint == 'admin.reports_view' %}active{% endif %}">گزارش‌های فروش</a>
+      {% endif %}
+      {% if has_permission('settings') %}
+      <a href="{{ url_for('admin.site_settings') }}" class="admin-nav-link {% if request.endpoint == 'admin.site_settings' %}active{% endif %}">تنظیمات و ارسال</a>
+      {% endif %}
+      {% if has_permission('users_roles') %}
+      <a href="{{ url_for('admin.admin_users_manage') }}" class="admin-nav-link {% if request.endpoint == 'admin.admin_users_manage' %}active{% endif %}">مدیران و نقش‌ها</a>
+      {% endif %}
+      {% if has_permission('audit') %}
+      <a href="{{ url_for('admin.audit_logs_view') }}" class="admin-nav-link {% if request.endpoint == 'admin.audit_logs_view' %}active{% endif %}">گزارش فعالیت‌ها (Audit)</a>
+      {% endif %}
+    </aside>
+
+    <div class="admin-main">
+      <header class="admin-topbar">
+        <div>
+          <strong>{{ current_user.full_name if current_user else '' }}</strong>
+          <span class="badge badge-info">{{ current_user.role if current_user else '' }}</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <a href="{{ url_for('shop.home') }}" target="_blank" class="btn btn-sm">مشاهده فروشگاه</a>
+          <form method="post" action="{{ url_for('admin.logout') }}" style="margin:0;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-sm btn-danger">خروج</button>
+          </form>
+        </div>
+      </header>
+
+      <div class="admin-content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for cat, msg in messages %}
+              <div class="alert alert-{{ cat }}">{{ msg }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+      </div>
+    </div>
+  </div>
+  <script src="{{ url_for('static', filename='js/admin.js', v=asset_v) }}" defer></script>
+</body>
+</html>

@@ -1,0 +1,92 @@
+{% extends "admin/_layout.html" %}
+{% block content %}
+<div class="card-header">
+  <h1 style="margin:0;">مدیریت سفارش‌ها ({{ total | fa_digits }})</h1>
+  <div style="display:flex;gap:8px;">
+    <a href="{{ url_for('admin.orders_export_csv', **filters) }}" class="btn">خروجی CSV</a>
+    <a href="{{ url_for('admin.order_create_manual') }}" class="btn btn-primary">+ ثبت سفارش دستی</a>
+  </div>
+</div>
+
+<div class="card">
+  <form method="get" class="form-row">
+    <input type="text" name="q" value="{{ filters.q }}" class="form-control" placeholder="شماره سفارش، نام، موبایل یا کد رهگیری...">
+    <select name="order_status" class="form-control">
+      <option value="">همه وضعیت‌های سفارش</option>
+      {% for k, lbl in status_labels.items() %}
+      <option value="{{ k }}" {% if filters.order_status == k %}selected{% endif %}>{{ lbl }}</option>
+      {% endfor %}
+    </select>
+    <select name="payment_status" class="form-control">
+      <option value="">همه وضعیت‌های پرداخت</option>
+      {% for k, lbl in payment_labels.items() %}
+      <option value="{{ k }}" {% if filters.payment_status == k %}selected{% endif %}>{{ lbl }}</option>
+      {% endfor %}
+    </select>
+    <input type="text" name="date_from" value="{{ filters.date_from }}" class="form-control" dir="ltr" placeholder="از تاریخ شمسی (1405/08/01)">
+    <input type="text" name="date_to" value="{{ filters.date_to }}" class="form-control" dir="ltr" placeholder="تا تاریخ شمسی (1405/08/30)">
+    <input type="text" name="coupon_code" value="{{ filters.coupon_code }}" class="form-control" dir="ltr" placeholder="کد تخفیف">
+    <input type="number" name="min_amount" value="{{ filters.min_amount }}" class="form-control" placeholder="حداقل مبلغ (تومان)">
+    <input type="number" name="max_amount" value="{{ filters.max_amount }}" class="form-control" placeholder="حداکثر مبلغ (تومان)">
+    <button type="submit" class="btn btn-primary">فیلتر</button>
+  </form>
+</div>
+
+<form method="post" action="{{ url_for('admin.orders_bulk') }}" class="card">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
+    <select name="bulk_action" class="form-control" style="width:auto;">
+      <option value="">عملیات گروهی...</option>
+      <option value="print_selected">چاپ فاکتور انتخاب‌شده‌ها</option>
+      {% for k, lbl in status_labels.items() %}
+      <option value="{{ k }}">تغییر وضعیت به: {{ lbl }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn btn-sm">اجرا</button>
+  </div>
+
+  <div class="table-wrap">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th><input type="checkbox" data-select-all=".ord-cb"></th>
+          <th>شماره سفارش</th>
+          <th>مشتری</th>
+          <th>موبایل</th>
+          <th>مبلغ کل</th>
+          <th>پرداخت</th>
+          <th>وضعیت سفارش</th>
+          <th>تاریخ ثبت</th>
+          <th>عملیات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for o in orders %}
+        <tr>
+          <td><input type="checkbox" name="selected_ids[]" value="{{ o.id }}" class="ord-cb"></td>
+          <td dir="ltr"><a href="{{ url_for('admin.order_detail', order_id=o.id) }}" style="font-weight:700;color:var(--primary);">{{ o.order_number }}</a></td>
+          <td>{{ o.customer_name }}</td>
+          <td dir="ltr">{{ o.customer_mobile }}</td>
+          <td>{{ o.total_rial | toman }}</td>
+          <td><span class="badge {{ 'badge-success' if o.payment_status == 'paid' else ('badge-danger' if o.payment_status == 'failed' else 'badge-warning') }}">{{ payment_labels.get(o.payment_status, o.payment_status) }}</span></td>
+          <td><span class="badge badge-info">{{ status_labels.get(o.order_status, o.order_status) }}</span></td>
+          <td style="font-size:0.82rem;">{{ o.created_at | jalali }}</td>
+          <td>
+            <a href="{{ url_for('admin.order_detail', order_id=o.id) }}" class="btn btn-sm">مدیریت</a>
+            <a href="{{ url_for('admin.order_print', order_id=o.id, doc_type='invoice') }}" target="_blank" class="btn btn-sm">چاپ</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</form>
+
+{% if total_pages > 1 %}
+<div style="display:flex;gap:6px;justify-content:center;">
+  {% for pg in range(1, total_pages + 1) %}
+    <a href="{{ url_for('admin.orders_list', page=pg, **filters) }}" class="btn btn-sm {{ 'btn-primary' if pg == page else '' }}">{{ pg | fa_digits }}</a>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

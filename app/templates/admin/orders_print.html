@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <title>چاپ {{ 'فاکتور فروش' if doc_type == 'invoice' else 'برگه بسته‌بندی' }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/print.css', v=asset_v) }}">
+</head>
+<body>
+  <div class="no-print" style="margin-bottom:14px;">
+    <button onclick="window.print()" style="padding:8px 18px;cursor:pointer;">چاپ / ذخیره PDF</button>
+  </div>
+
+  {% for o in orders_data %}
+  <section class="print-doc">
+    <div class="print-header">
+      <div>
+        <h2 style="margin:0;">{{ site.site_name }}</h2>
+        <div>{{ 'فاکتور فروش' if doc_type == 'invoice' else 'برگه آماده‌سازی و بسته‌بندی انبار' }}</div>
+      </div>
+      <div style="text-align:left;">
+        <div>شماره سفارش: <strong dir="ltr">{{ o.order_number }}</strong></div>
+        <div>تاریخ: {{ o.created_at | jalali }}</div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:12px;">
+      <strong>گیرنده:</strong> {{ o.customer_name }} | <strong>موبایل:</strong> <span dir="ltr">{{ o.customer_mobile }}</span><br>
+      <strong>نشانی:</strong> {{ o.shipping_province }}، {{ o.shipping_city }}، {{ o.shipping_address }} | <strong>کد پستی:</strong> <span dir="ltr">{{ o.shipping_postal_code }}</span>
+    </div>
+
+    <table class="print-table">
+      <thead>
+        <tr>
+          <th>ردیف</th>
+          <th>شرح کالا</th>
+          <th>کد SKU</th>
+          <th>تعداد</th>
+          {% if doc_type == 'invoice' %}
+          <th>قیمت واحد</th>
+          <th>جمع کل</th>
+          {% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for it in o['items'] %}
+        <tr>
+          <td>{{ loop.index | fa_digits }}</td>
+          <td>{{ it.product_title }} ({{ it.variant_label }})</td>
+          <td dir="ltr">{{ it.sku }}</td>
+          <td>{{ it.quantity | fa_digits }}</td>
+          {% if doc_type == 'invoice' %}
+          <td>{{ it.unit_price_rial | toman }}</td>
+          <td>{{ it.line_total_rial | toman }}</td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {% if doc_type == 'invoice' %}
+    <div style="margin-top:14px;text-align:left;">
+      <div>جمع کالاها: {{ o.subtotal_rial | toman }}</div>
+      <div>هزینه ارسال: {{ o.shipping_fee_rial | toman }}</div>
+      <div>تخفیف: {{ o.discount_rial | toman }}</div>
+      <div style="font-size:1.1rem;font-weight:700;margin-top:4px;">مبلغ نهایی: {{ o.total_rial | toman }}</div>
+    </div>
+    {% endif %}
+  </section>
+  {% endfor %}
+</body>
+</html>

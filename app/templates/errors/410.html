@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card" style="text-align:center;margin-top:40px;padding:48px 20px;">
+  <h1 style="font-size:3rem;margin:0;color:var(--warning);">۴۱۰</h1>
+  <h2>این صفحه یا محصول برای همیشه حذف شده است</h2>
+  <p>می‌توانید از دسته‌بندی‌های فروشگاه محصولات مشابه را مشاهده کنید.</p>
+  <a href="{{ url_for('shop.products_list') }}" class="btn btn-primary">مشاهده محصولات فروشگاه</a>
+</div>
+{% endblock %}

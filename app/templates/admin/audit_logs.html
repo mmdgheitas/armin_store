@@ -1,0 +1,31 @@
+{% extends "admin/_layout.html" %}
+{% block content %}
+<h1 style="margin-top:0;">گزارش ممیزی و رویدادهای مدیریت ({{ total | fa_digits }})</h1>
+
+<div class="card">
+  <form method="get" class="form-row">
+    <input type="text" name="entity_type" value="{{ entity_type }}" class="form-control" placeholder="نوع موجودیت (product, order, settings...)" dir="ltr">
+    <input type="text" name="action" value="{{ action }}" class="form-control" placeholder="عملیات..." dir="ltr">
+    <button type="submit" class="btn btn-primary">فیلتر</button>
+  </form>
+</div>
+
+<div class="card table-wrap">
+  <table class="admin-table">
+    <thead><tr><th>زمان</th><th>مدیر</th><th>عملیات</th><th>موجودیت</th><th>شناسه</th><th>IP</th><th>جزئیات</th></tr></thead>
+    <tbody>
+      {% for l in logs %}
+      <tr>
+        <td style="font-size:0.82rem;">{{ l.created_at | jalali }}</td>
+        <td>{{ l.admin_name }}</td>
+        <td><span class="badge">{{ l.action }}</span></td>
+        <td dir="ltr">{{ l.entity_type }}</td>
+        <td dir="ltr">{{ l.entity_id }}</td>
+        <td dir="ltr">{{ l.ip_address }}</td>
+        <td style="font-size:0.78rem;max-width:300px;overflow:hidden;text-overflow:ellipsis;">{{ l.after_json or l.before_json or '—' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,131 @@
+{% extends "admin/_layout.html" %}
+{% block content %}
+<div class="card-header">
+  <h1 style="margin:0;">مدیریت محصولات ({{ total | fa_digits }})</h1>
+  <div style="display:flex;gap:8px;">
+    <a href="{{ url_for('admin.products_export_csv', q=q, category_id=category_id or '', status=status, stock_state=stock_state) }}" class="btn">خروجی CSV</a>
+    <a href="{{ url_for('admin.product_create') }}" class="btn btn-primary">+ افزودن محصول جدید</a>
+  </div>
+</div>
+
+<div class="card">
+  <form method="get" class="form-row">
+    <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="جستجو در عنوان، اسلاگ یا SKU...">
+    <select name="category_id" class="form-control">
+      <option value="">همه دسته‌بندی‌ها</option>
+      {% for c in categories %}
+      <option value="{{ c.id }}" {% if category_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+      {% endfor %}
+    </select>
+    <select name="status" class="form-control">
+      <option value="">همه وضعیت‌ها</option>
+      <option value="published" {% if status == 'published' %}selected{% endif %}>منتشرشده</option>
+      <option value="draft" {% if status == 'draft' %}selected{% endif %}>پیش‌نویس</option>
+      <option value="archived" {% if status == 'archived' %}selected{% endif %}>بایگانی</option>
+    </select>
+    <select name="stock_state" class="form-control">
+      <option value="">همه وضعیت‌های موجودی</option>
+      <option value="in" {% if stock_state == 'in' %}selected{% endif %}>موجود</option>
+      <option value="low" {% if stock_state == 'low' %}selected{% endif %}>کمبود موجودی</option>
+      <option value="out" {% if stock_state == 'out' %}selected{% endif %}>ناموجود</option>
+    </select>
+    <select name="sort" class="form-control">
+      <option value="updated_desc" {% if sort == 'updated_desc' %}selected{% endif %}>آخرین ویرایش</option>
+      <option value="created_desc" {% if sort == 'created_desc' %}selected{% endif %}>جدیدترین</option>
+      <option value="stock_asc" {% if sort == 'stock_asc' %}selected{% endif %}>کمترین موجودی</option>
+      <option value="sold_desc" {% if sort == 'sold_desc' %}selected{% endif %}>پرفروش‌ترین</option>
+    </select>
+    <button type="submit" class="btn btn-primary">فیلتر</button>
+  </form>
+</div>
+
+<form method="post" action="{{ url_for('admin.products_bulk') }}" class="card">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
+    <select name="bulk_action" class="form-control" style="width:auto;">
+      <option value="">عملیات گروهی...</option>
+      <option value="published">انتشار (فعال‌سازی)</option>
+      <option value="draft">تغییر به پیش‌نویس</option>
+      <option value="archived">بایگانی</option>
+      <option value="change_category">تغییر دسته‌بندی</option>
+      <option value="delete">حذف / بایگانی</option>
+    </select>
+    <select name="bulk_category_id" class="form-control" style="width:auto;">
+      <option value="">انتخاب دسته (برای تغییر دسته)...</option>
+      {% for c in categories %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
+    </select>
+    <button type="submit" class="btn btn-sm">اجرا</button>
+  </div>
+
+  <div class="table-wrap">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th><input type="checkbox" data-select-all=".prod-cb"></th>
+          <th>تصویر</th>
+          <th>عنوان</th>
+          <th>دسته‌بندی</th>
+          <th>SKU</th>
+          <th>محدوده قیمت</th>
+          <th>موجودی کل</th>
+          <th>وضعیت</th>
+          <th>امتیاز</th>
+          <th>به‌روزرسانی</th>
+          <th>عملیات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in items %}
+        <tr>
+          <td><input type="checkbox" name="selected_ids[]" value="{{ p.id }}" class="prod-cb"></td>
+          <td>
+            {% if p.cover_thumb %}
+            <img src="{{ url_for('shop.serve_media', filename=p.cover_thumb) }}" alt="" style="width:46px;height:36px;object-fit:cover;border-radius:6px;">
+            {% endif %}
+          </td>
+          <td><a href="{{ url_for('admin.product_edit', product_id=p.id) }}" style="font-weight:700;color:var(--primary);">{{ p.title }}</a></td>
+          <td>{{ p.category_name }}</td>
+          <td dir="ltr" style="font-size:0.8rem;">{{ p.skus }}</td>
+          <td>
+            {% if p.min_price_rial == p.max_price_rial %}
+              {{ p.min_price_rial | toman }}
+            {% else %}
+              {{ p.min_price_rial | toman_num }} تا {{ p.max_price_rial | toman }}
+            {% endif %}
+          </td>
+          <td>
+            <span class="badge {{ 'badge-danger' if p.total_stock <= 0 else 'badge-success' }}">{{ p.total_stock | fa_digits }}</span>
+          </td>
+          <td>
+            <span class="badge {{ 'badge-success' if p.status == 'published' else ('badge-warning' if p.status == 'draft' else 'badge-danger') }}">
+              {{ 'منتشرشده' if p.status == 'published' else ('پیش‌نویس' if p.status == 'draft' else 'بایگانی') }}
+            </span>
+          </td>
+          <td>{{ p.avg_rating | fa_digits }} ({{ p.review_count | fa_digits }})</td>
+          <td style="font-size:0.82rem;">{{ p.updated_at | jalali_date }}</td>
+          <td style="white-space:nowrap;">
+            <a href="{{ url_for('admin.product_edit', product_id=p.id) }}" class="btn btn-sm">ویرایش</a>
+            <form method="post" action="{{ url_for('admin.product_duplicate', product_id=p.id) }}" style="display:inline;">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-sm">کپی</button>
+            </form>
+            <form method="post" action="{{ url_for('admin.product_delete', product_id=p.id) }}" style="display:inline;" data-confirm="آیا از حذف/بایگانی این محصول مطمئن هستید؟">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-sm btn-danger">حذف</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</form>
+
+{% if total_pages > 1 %}
+<div style="display:flex;gap:6px;justify-content:center;">
+  {% for pg in range(1, total_pages + 1) %}
+    <a href="{{ url_for('admin.products_list', page=pg, q=q, category_id=category_id or '', status=status, stock_state=stock_state, sort=sort) }}" class="btn btn-sm {{ 'btn-primary' if pg == page else '' }}">{{ pg | fa_digits }}</a>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,60 @@
+{% extends "admin/_layout.html" %}
+{% block content %}
+<div class="card-header">
+  <h1 style="margin:0;">گزارش‌های فروش و عملکرد</h1>
+  <a href="{{ url_for('admin.reports_view', date_from=date_from, date_to=date_to, export='csv') }}" class="btn">خروجی CSV فروش محصولات</a>
+</div>
+
+<div class="card">
+  <form method="get" class="form-row">
+    <input type="text" name="date_from" value="{{ date_from }}" class="form-control" dir="ltr" placeholder="از تاریخ شمسی (1405/08/01)">
+    <input type="text" name="date_to" value="{{ date_to }}" class="form-control" dir="ltr" placeholder="تا تاریخ شمسی (1405/08/30)">
+    <button type="submit" class="btn btn-primary">اعمال بازه زمانی</button>
+  </form>
+</div>
+
+<div class="kpi-grid">
+  <div class="kpi-card"><div class="kpi-label">تعداد سفارش‌های پرداخت‌شده</div><div class="kpi-value">{{ summary.order_count | fa_digits }}</div></div>
+  <div class="kpi-card"><div class="kpi-label">فروش ناخالص کالاها</div><div class="kpi-value">{{ summary.subtotal_rial | toman }}</div></div>
+  <div class="kpi-card"><div class="kpi-label">تخفیف‌های اعمال‌شده</div><div class="kpi-value">{{ summary.discount_rial | toman }}</div></div>
+  <div class="kpi-card"><div class="kpi-label">جمع درآمد خالص</div><div class="kpi-value">{{ summary.total_rial | toman }}</div></div>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px;">
+  <div class="card table-wrap">
+    <h2 class="card-title" style="margin-bottom:10px;">فروش بر اساس محصول</h2>
+    <table class="admin-table">
+      <thead><tr><th>محصول</th><th>SKU</th><th>تعداد</th><th>درآمد</th></tr></thead>
+      <tbody>
+        {% for r in by_product %}
+        <tr><td>{{ r.product_title }}</td><td dir="ltr">{{ r.sku }}</td><td>{{ r.qty_sold | fa_digits }}</td><td>{{ r.revenue_rial | toman }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card table-wrap">
+    <h2 class="card-title" style="margin-bottom:10px;">فروش بر اساس دسته‌بندی</h2>
+    <table class="admin-table">
+      <thead><tr><th>دسته‌بندی</th><th>تعداد</th><th>درآمد</th></tr></thead>
+      <tbody>
+        {% for r in by_category %}
+        <tr><td>{{ r.category_name }}</td><td>{{ r.qty_sold | fa_digits }}</td><td>{{ r.revenue_rial | toman }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card table-wrap">
+  <h2 class="card-title" style="margin-bottom:10px;">گزارش مصرف کدهای تخفیف</h2>
+  <table class="admin-table">
+    <thead><tr><th>کد</th><th>عنوان</th><th>دفعات مصرف</th><th>جمع تخفیف</th></tr></thead>
+    <tbody>
+      {% for c in by_coupon %}
+      <tr><td dir="ltr">{{ c.code }}</td><td>{{ c.title }}</td><td>{{ c.uses | fa_digits }}</td><td>{{ c.total_discount_rial | toman }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

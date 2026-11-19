@@ -1,0 +1,62 @@
+{% extends "admin/_layout.html" %}
+{% block content %}
+<h1 style="margin-top:0;">مدیریت کاربران مدیر و نقش‌های دسترسی</h1>
+
+<div class="card">
+  <h2 class="card-title" style="margin-bottom:10px;">افزودن مدیر / اپراتور جدید</h2>
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="create">
+    <div class="form-row">
+      <div class="form-group"><label>نام و نام خانوادگی</label><input type="text" name="full_name" class="form-control" required></div>
+      <div class="form-group"><label>نام کاربری *</label><input type="text" name="username" class="form-control" dir="ltr" required></div>
+      <div class="form-group"><label>ایمیل *</label><input type="email" name="email" class="form-control" dir="ltr" required></div>
+      <div class="form-group"><label>موبایل (برای ۲FA)</label><input type="tel" name="mobile" class="form-control" dir="ltr"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>نقش</label>
+        <select name="role" class="form-control">
+          {% for r, lbl in role_labels.items() if r != 'customer' %}
+          <option value="{{ r }}">{{ lbl }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group"><label>رمز عبور *</label><input type="password" name="password" class="form-control" dir="ltr" required></div>
+      <div class="form-group" style="display:flex;align-items:center;"><label><input type="checkbox" name="otp_2fa_enabled" value="1"> ورود دو مرحله‌ای پیامکی (۲FA)</label></div>
+    </div>
+    <button type="submit" class="btn btn-primary">ایجاد کاربر</button>
+  </form>
+</div>
+
+<div class="card table-wrap">
+  <table class="admin-table">
+    <thead><tr><th>نام</th><th>نام کاربری</th><th>ایمیل</th><th>موبایل</th><th>نقش و وضعیت</th></tr></thead>
+    <tbody>
+      {% for a in admins %}
+      <tr>
+        <td>{{ a.full_name }}</td>
+        <td dir="ltr">{{ a.username or '—' }}</td>
+        <td dir="ltr">{{ a.email or '—' }}</td>
+        <td dir="ltr">{{ a.mobile or '—' }}</td>
+        <td>
+          <form method="post" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action" value="update_role">
+            <input type="hidden" name="user_id" value="{{ a.id }}">
+            <select name="role" class="form-control" style="width:auto;">
+              {% for r, lbl in role_labels.items() if r != 'customer' %}
+              <option value="{{ r }}" {% if a.role == r %}selected{% endif %}>{{ lbl }}</option>
+              {% endfor %}
+            </select>
+            <label><input type="checkbox" name="is_active" value="1" {% if a.is_active %}checked{% endif %}> فعال</label>
+            <label><input type="checkbox" name="otp_2fa_enabled" value="1" {% if a.otp_2fa_enabled %}checked{% endif %}> ۲FA</label>
+            <button type="submit" class="btn btn-sm btn-primary">ذخیره</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

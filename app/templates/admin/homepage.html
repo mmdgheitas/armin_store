@@ -1,0 +1,74 @@
+{% extends "admin/_layout.html" %}
+{% block content %}
+<h1 style="margin-top:0;">مدیریت بنرها و بخش‌های صفحه اصلی</h1>
+
+<div class="card">
+  <h2 class="card-title" style="margin-bottom:10px;">افزودن بنر / اسلایدر جدید</h2>
+  <form method="post" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="save_banner">
+    <div class="form-row">
+      <div class="form-group"><label>عنوان بنر *</label><input type="text" name="title" class="form-control" required></div>
+      <div class="form-group"><label>زیرعنوان</label><input type="text" name="subtitle" class="form-control"></div>
+      <div class="form-group"><label>لینک دکمه</label><input type="text" name="link_url" class="form-control" dir="ltr" placeholder="/products"></div>
+      <div class="form-group"><label>متن دکمه</label><input type="text" name="button_text" value="مشاهده" class="form-control"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>جایگاه</label>
+        <select name="placement" class="form-control">
+          <option value="hero">اسلایدر اصلی (Hero)</option>
+          <option value="promo">بنر تبلیغاتی میانی</option>
+        </select>
+      </div>
+      <div class="form-group"><label>ترتیب</label><input type="number" name="sort_order" value="0" class="form-control"></div>
+      <div class="form-group"><label>تصویر بنر *</label><input type="file" name="image" accept=".jpg,.jpeg,.png,.webp" class="form-control" required></div>
+      <div class="form-group" style="display:flex;align-items:center;"><label><input type="checkbox" name="is_active" value="1" checked> فعال</label></div>
+    </div>
+    <button type="submit" class="btn btn-primary">افزودن بنر</button>
+  </form>
+</div>
+
+<div class="card table-wrap">
+  <h2 class="card-title">بنرهای موجود</h2>
+  <table class="admin-table">
+    <thead><tr><th>تصویر</th><th>عنوان</th><th>جایگاه</th><th>ترتیب</th><th>وضعیت</th><th></th></tr></thead>
+    <tbody>
+      {% for b in banners %}
+      <tr>
+        <td><img src="{{ url_for('shop.serve_media', filename=b.image_path) }}" style="width:90px;height:42px;object-fit:cover;border-radius:6px;"></td>
+        <td>{{ b.title }}</td>
+        <td>{{ b.placement }}</td>
+        <td>{{ b.sort_order }}</td>
+        <td>{{ 'فعال' if b.is_active else 'غیرفعال' }}</td>
+        <td>
+          <form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="delete_banner"><input type="hidden" name="banner_id" value="{{ b.id }}"><button type="submit" class="btn btn-sm btn-danger">حذف</button></form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h2 class="card-title">کالکشن‌های ویژه</h2>
+  <form method="post" class="form-row" style="margin-bottom:12px;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="save_collection">
+    <input type="text" name="col_title" class="form-control" placeholder="عنوان کالکشن" required>
+    <select name="col_category_id" class="form-control">
+      <option value="">دسته مرتبط (اختیاری)</option>
+      {% for c in categories %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
+    </select>
+    <input type="text" name="col_description" class="form-control" placeholder="توضیح کوتاه">
+    <input type="number" name="col_sort_order" value="0" class="form-control">
+    <button type="submit" class="btn btn-primary">افزودن</button>
+  </form>
+  {% for col in collections %}
+  <div style="display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--border);">
+    <span><strong>{{ col.title }}</strong> — {{ col.description }}</span>
+    <form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="delete_collection"><input type="hidden" name="collection_id" value="{{ col.id }}"><button type="submit" class="btn btn-sm btn-danger">حذف</button></form>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

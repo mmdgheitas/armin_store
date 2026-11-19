@@ -1,0 +1,12 @@
+<aside class="account-nav">
+  <a href="{{ url_for('account.dashboard') }}" class="{% if request.endpoint == 'account.dashboard' %}active{% endif %}">پیشخوان کاربری</a>
+  <a href="{{ url_for('account.orders') }}" class="{% if request.endpoint in ['account.orders', 'account.order_detail'] %}active{% endif %}">سفارش‌های من</a>
+  <a href="{{ url_for('account.addresses') }}" class="{% if request.endpoint == 'account.addresses' %}active{% endif %}">دفترچه آدرس</a>
+  <a href="{{ url_for('account.wishlist') }}" class="{% if request.endpoint == 'account.wishlist' %}active{% endif %}">علاقه‌مندی‌ها</a>
+  <a href="{{ url_for('account.my_reviews') }}" class="{% if request.endpoint == 'account.my_reviews' %}active{% endif %}">دیدگاه‌های من</a>
+  <a href="{{ url_for('account.profile') }}" class="{% if request.endpoint == 'account.profile' %}active{% endif %}">ویرایش پروفایل و امنیت</a>
+  <form method="post" action="{{ url_for('auth.logout') }}" style="margin-top:8px;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn btn-outline btn-sm" style="width:100%;">خروج از حساب</button>
+  </form>
+</aside>

@@ -1,0 +1,35 @@
+{% extends "admin/_layout.html" %}
+{% block content %}
+<h1 style="margin-top:0;">تنظیمات درگاه پرداخت و گزارش تراکنش‌ها</h1>
+
+<div class="card">
+  <h2 class="card-title" style="margin-bottom:10px;">تنظیمات Bitpay.ir</h2>
+  <form method="post" class="form-row" style="align-items:end;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-group"><label>کلید API بیت‌پی (خالی = مقدار .env)</label><input type="text" name="bitpay_api_key" value="{{ settings.bitpay_api_key }}" class="form-control" dir="ltr"></div>
+    <div class="form-group"><label><input type="checkbox" name="bitpay_test_mode" value="1" {% if settings.bitpay_test_mode == '1' %}checked{% endif %}> حالت تست (Sandbox) بیت‌پی فعال باشد</label></div>
+    <div class="form-group"><button type="submit" class="btn btn-primary">ذخیره تنظیمات درگاه</button></div>
+  </form>
+</div>
+
+<div class="card table-wrap">
+  <h2 class="card-title" style="margin-bottom:10px;">تراکنش‌های درگاه ({{ total | fa_digits }})</h2>
+  <table class="admin-table">
+    <thead><tr><th>سفارش</th><th>مشتری</th><th>مبلغ</th><th>id_get</th><th>trans_id</th><th>وضعیت</th><th>پیام</th><th>تاریخ</th></tr></thead>
+    <tbody>
+      {% for p in payments %}
+      <tr>
+        <td dir="ltr"><a href="{{ url_for('admin.order_detail', order_id=p.order_id) }}" style="color:var(--primary);font-weight:700;">{{ p.order_number }}</a></td>
+        <td>{{ p.customer_name }}</td>
+        <td>{{ p.amount_rial | toman }}</td>
+        <td dir="ltr">{{ p.id_get or '—' }}</td>
+        <td dir="ltr">{{ p.trans_id or '—' }}</td>
+        <td><span class="badge {{ 'badge-success' if p.status == 'verified' else ('badge-danger' if p.status in ['failed', 'amount_mismatch'] else 'badge-info') }}">{{ p.status }}</span></td>
+        <td>{{ p.error_message or '—' }}</td>
+        <td style="font-size:0.82rem;">{{ p.created_at | jalali }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

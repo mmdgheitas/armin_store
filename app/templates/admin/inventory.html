@@ -1,0 +1,76 @@
+{% extends "admin/_layout.html" %}
+{% block content %}
+<div class="card-header">
+  <h1 style="margin:0;">مدیریت انبار و موجودی</h1>
+  <a href="{{ url_for('admin.inventory_export_csv') }}" class="btn">خروجی CSV موجودی</a>
+</div>
+
+<div class="card">
+  <div class="form-row" style="align-items:end;">
+    <form method="get" style="display:flex;gap:8px;flex-wrap:wrap;">
+      <input type="text" name="q" value="{{ q }}" class="form-control" style="width:220px;" placeholder="جستجوی محصول یا SKU...">
+      <select name="filter" class="form-control" style="width:auto;">
+        <option value="">همه کالاها</option>
+        <option value="low" {% if stock_filter == 'low' %}selected{% endif %}>کمبود موجودی</option>
+        <option value="out" {% if stock_filter == 'out' %}selected{% endif %}>ناموجود</option>
+      </select>
+      <button type="submit" class="btn btn-primary">فیلتر</button>
+    </form>
+
+    <form method="post" enctype="multipart/form-data" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="import_csv">
+      <input type="file" name="csv_file" accept=".csv" class="form-control" style="width:auto;" required>
+      <button type="submit" class="btn">ورود گروهی CSV</button>
+    </form>
+  </div>
+</div>
+
+<div class="card table-wrap">
+  <table class="admin-table">
+    <thead><tr><th>محصول</th><th>تنوع</th><th>SKU</th><th>موجودی فعلی</th><th>آستانه</th><th>تنظیم سریع موجودی (با دلیل اجباری)</th></tr></thead>
+    <tbody>
+      {% for v in variants %}
+      <tr>
+        <td><a href="{{ url_for('admin.product_edit', product_id=v.product_id) }}">{{ v.product_title }}</a></td>
+        <td>{{ v.label }}</td>
+        <td dir="ltr">{{ v.sku }}</td>
+        <td><span class="badge {{ 'badge-danger' if v.stock_quantity <= 0 else ('badge-warning' if v.stock_quantity <= v.low_stock_threshold else 'badge-success') }}">{{ v.stock_quantity | fa_digits }}</span></td>
+        <td>{{ v.low_stock_threshold | fa_digits }}</td>
+        <td>
+          <form method="post" style="display:flex;gap:6px;align-items:center;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action" value="adjust">
+            <input type="hidden" name="variant_id" value="{{ v.id }}">
+            <input type="number" name="new_stock" value="{{ v.stock_quantity }}" min="0" class="form-control" style="width:85px;">
+            <input type="text" name="note" class="form-control" placeholder="دلیل تغییر (مثلاً شارژ انبار)..." required style="min-width:160px;">
+            <button type="submit" class="btn btn-sm btn-primary">ثبت</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card table-wrap">
+  <h2 class="card-title" style="margin-bottom:10px;">دفترکل گردش انبار (۵۰ رویداد اخیر)</h2>
+  <table class="admin-table">
+    <thead><tr><th>تاریخ</th><th>محصول</th><th>SKU</th><th>تغییر</th><th>قبل / بعد</th><th>دلیل</th><th>سفارش</th><th>توضیح</th></tr></thead>
+    <tbody>
+      {% for m in movements %}
+      <tr>
+        <td style="font-size:0.82rem;">{{ m.created_at | jalali }}</td>
+        <td>{{ m.product_title }} ({{ m.variant_label }})</td>
+        <td dir="ltr">{{ m.sku }}</td>
+        <td dir="ltr" style="font-weight:700;color:{{ 'green' if m.delta > 0 else 'red' }};">{{ '+' ~ m.delta if m.delta > 0 else m.delta }}</td>
+        <td>{{ m.before_qty | fa_digits }} ← {{ m.after_qty | fa_digits }}</td>
+        <td>{{ m.reason }}</td>
+        <td dir="ltr">{{ m.order_number or '—' }}</td>
+        <td>{{ m.note }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,65 @@
+{% extends "admin/_layout.html" %}
+{% block content %}
+<h1 style="margin-top:0;">مدیریت دسته‌بندی‌ها</h1>
+
+<div class="card">
+  <h2 class="card-title" style="margin-bottom:10px;">{{ 'ویرایش دسته‌بندی' if edit_cat else 'افزودن دسته‌بندی جدید' }}</h2>
+  <form method="post" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="save">
+    <input type="hidden" name="category_id" value="{{ edit_cat.id if edit_cat else '' }}">
+    <div class="form-row">
+      <div class="form-group"><label>نام دسته‌بندی *</label><input type="text" name="name" value="{{ edit_cat.name if edit_cat else '' }}" class="form-control" required></div>
+      <div class="form-group"><label>اسلاگ</label><input type="text" name="slug" value="{{ edit_cat.slug if edit_cat else '' }}" class="form-control"></div>
+      <div class="form-group">
+        <label>دسته والد</label>
+        <select name="parent_id" class="form-control">
+          <option value="">بدون والد (دسته اصلی)</option>
+          {% for c in categories if not edit_cat or c.id != edit_cat.id %}
+          <option value="{{ c.id }}" {% if edit_cat and edit_cat.parent_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group"><label>ترتیب نمایش</label><input type="number" name="sort_order" value="{{ edit_cat.sort_order if edit_cat else 0 }}" class="form-control"></div>
+    </div>
+    <div class="form-group"><label>توضیحات</label><textarea name="description" rows="2" class="form-control">{{ edit_cat.description if edit_cat else '' }}</textarea></div>
+    <div class="form-row">
+      <div class="form-group"><label>تصویر دسته‌بندی</label><input type="file" name="image" accept=".jpg,.jpeg,.png,.webp" class="form-control"></div>
+      <div class="form-group"><label>Meta Title</label><input type="text" name="meta_title" value="{{ edit_cat.meta_title if edit_cat else '' }}" class="form-control"></div>
+      <div class="form-group"><label>Meta Description</label><input type="text" name="meta_description" value="{{ edit_cat.meta_description if edit_cat else '' }}" class="form-control"></div>
+    </div>
+    <div style="display:flex;gap:14px;margin-bottom:12px;">
+      <label><input type="checkbox" name="is_active" value="1" {% if not edit_cat or edit_cat.is_active %}checked{% endif %}> فعال</label>
+      <label><input type="checkbox" name="noindex" value="1" {% if edit_cat and edit_cat.noindex %}checked{% endif %}> noindex</label>
+    </div>
+    <button type="submit" class="btn btn-primary">ذخیره دسته‌بندی</button>
+    {% if edit_cat %}<a href="{{ url_for('admin.categories_manage') }}" class="btn">انصراف</a>{% endif %}
+  </form>
+</div>
+
+<div class="card table-wrap">
+  <table class="admin-table">
+    <thead><tr><th>نام</th><th>اسلاگ</th><th>تعداد محصول</th><th>ترتیب</th><th>وضعیت</th><th>عملیات</th></tr></thead>
+    <tbody>
+      {% for c in categories %}
+      <tr>
+        <td>{{ '— ' if c.parent_id else '' }}{{ c.name }}</td>
+        <td>{{ c.slug }}</td>
+        <td>{{ c.product_count | fa_digits }}</td>
+        <td>{{ c.sort_order | fa_digits }}</td>
+        <td><span class="badge {{ 'badge-success' if c.is_active else 'badge-danger' }}">{{ 'فعال' if c.is_active else 'غیرفعال' }}</span></td>
+        <td>
+          <a href="{{ url_for('admin.categories_manage', edit=c.id) }}" class="btn btn-sm">ویرایش</a>
+          <form method="post" style="display:inline;" data-confirm="آیا از حذف دسته‌بندی مطمئن هستید؟">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action" value="delete">
+            <input type="hidden" name="category_id" value="{{ c.id }}">
+            <button type="submit" class="btn btn-sm btn-danger">حذف</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

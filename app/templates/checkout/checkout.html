@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 style="margin:20px 0 16px;">تکمیل خرید و ثبت سفارش</h1>
+
+<form method="post" action="{{ url_for('checkout.index') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div style="display:grid;grid-template-columns:1fr 360px;gap:20px;align-items:start;">
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      {% if current_user and addresses %}
+      <div class="card">
+        <h2 style="margin-top:0;font-size:1.1rem;">انتخاب آدرس ارسال</h2>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          {% for addr in addresses %}
+          <label style="border:1px solid var(--border);padding:10px 12px;border-radius:8px;display:flex;gap:10px;cursor:pointer;">
+            <input type="radio" name="address_id" value="{{ addr.id }}" {% if addr.is_default or loop.first %}checked{% endif %} onchange="document.getElementById('new-address-fields').style.display='none';">
+            <div>
+              <strong>{{ addr.title }} — {{ addr.recipient_name }}</strong>
+              <div style="font-size:0.86rem;color:var(--text-muted);">{{ addr.province_name }}، {{ addr.city_name }}، {{ addr.address_line }} | کدپستی: {{ addr.postal_code | fa_digits }} | موبایل: {{ addr.mobile | fa_digits }}</div>
+            </div>
+          </label>
+          {% endfor %}
+          <label style="border:1px solid var(--border);padding:10px 12px;border-radius:8px;display:flex;gap:10px;cursor:pointer;">
+            <input type="radio" name="address_id" value="new" onchange="document.getElementById('new-address-fields').style.display='block';">
+            <strong>ثبت آدرس جدید</strong>
+          </label>
+        </div>
+      </div>
+      {% else %}
+        <input type="hidden" name="address_id" value="new">
+      {% endif %}
+
+      <div class="card" id="new-address-fields" style="display:{{ 'none' if (current_user and addresses and form_data.get('address_id') != 'new') else 'block' }};">
+        <h2 style="margin-top:0;font-size:1.1rem;">مشخصات گیرنده و نشانی</h2>
+        <div class="form-row">
+          <div class="form-group">
+            <label>نام و نام خانوادگی گیرنده *</label>
+            <input type="text" name="customer_name" value="{{ form_data.get('customer_name') or (current_user.full_name if current_user else '') }}" class="form-control">
+          </div>
+          <div class="form-group">
+            <label>شماره موبایل *</label>
+            <div style="display:flex;gap:6px;">
+              <input type="tel" id="chk-mobile" name="customer_mobile" value="{{ form_data.get('customer_mobile') or (current_user.mobile if current_user else '') or verified_guest_mobile }}" class="form-control" dir="ltr" placeholder="09123456789">
+              {% if not current_user %}
+              <button type="button" class="btn btn-accent btn-sm" data-send-otp data-mobile-input="#chk-mobile" data-purpose="checkout" data-status-el="#chk-otp-status">ارسال کد</button>
+              {% endif %}
+            </div>
+            {% if not current_user %}
+            <div id="chk-otp-status" class="alert alert-info" style="display:none;margin-top:6px;padding:6px 10px;font-size:0.82rem;"></div>
+            {% endif %}
+          </div>
+        </div>
+
+        {% if not current_user %}
+        <div class="form-group" style="background:var(--info-bg);padding:10px 12px;border-radius:8px;">
+          <label>کد تایید پیامکی موبایل (برای خرید مهمان) *</label>
+          {% if verified_guest_mobile %}
+          <div style="font-size:0.86rem;color:var(--success);">شماره {{ verified_guest_mobile | fa_digits }} قبلاً تایید شده است. در صورت تغییر شماره، کد جدید دریافت کنید.</div>
+          {% endif %}
+          <input type="text" name="otp_code" class="form-control" dir="ltr" maxlength="6" placeholder="کد ۶ رقمی پیامک‌شده" style="max-width:220px;margin-top:6px;">
+        </div>
+        {% endif %}
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>استان *</label>
+            <select name="province_id" class="form-control" data-province-select data-city-target="chk-city">
+              <option value="">انتخاب استان</option>
+              {% for p in provinces %}
+              <option value="{{ p.id }}">{{ p.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>شهر *</label>
+            <select name="city_id" id="chk-city" class="form-control">
+              <option value="">ابتدا استان را انتخاب کنید</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>نشانی کامل پستی *</label>
+          <textarea name="address_line" rows="2" class="form-control" placeholder="خیابان، کوچه، پلاک، واحد...">{{ form_data.get('address_line', '') }}</textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>کد پستی ۱۰ رقمی *</label>
+            <input type="text" name="postal_code" value="{{ form_data.get('postal_code', '') }}" class="form-control" dir="ltr" maxlength="10" placeholder="1234567890">
+          </div>
+          <div class="form-group">
+            <label>ایمیل (اختیاری)</label>
+            <input type="email" name="customer_email" value="{{ form_data.get('customer_email') or (current_user.email if current_user else '') }}" class="form-control" dir="ltr">
+          </div>
+        </div>
+
+        {% if current_user %}
+        <label style="display:flex;align-items:center;gap:6px;font-size:0.88rem;">
+          <input type="checkbox" name="save_address" value="1" checked>
+          ذخیره این آدرس در دفترچه آدرس حساب من
+        </label>
+        {% endif %}
+      </div>
+
+      <div class="card">
+        <h2 style="margin-top:0;font-size:1.1rem;">توضیحات سفارش و روش پرداخت</h2>
+        <div class="form-group">
+          <label>توضیحات سفارش (اختیاری)</label>
+          <textarea name="customer_note" rows="2" class="form-control" placeholder="ساعت مناسب تحویل یا توضیحات تکمیلی...">{{ form_data.get('customer_note', '') }}</textarea>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          {% if bitpay_enabled %}
+          <label style="border:1px solid var(--border);padding:10px 12px;border-radius:8px;display:flex;gap:10px;cursor:pointer;">
+            <input type="radio" name="payment_method" value="bitpay" checked>
+            <div>
+              <strong>پرداخت آنلاین با کلیه کارت‌های عضو شتاب (درگاه بیت‌پی)</strong>
+              <div style="font-size:0.82rem;color:var(--text-muted);">پرداخت امن و تایید آنی سفارش</div>
+            </div>
+          </label>
+          {% endif %}
+          {% if cod_enabled %}
+          <label style="border:1px solid var(--border);padding:10px 12px;border-radius:8px;display:flex;gap:10px;cursor:pointer;">
+            <input type="radio" name="payment_method" value="cod" {% if not bitpay_enabled %}checked{% endif %}>
+            <div>
+              <strong>پرداخت در محل</strong>
+              <div style="font-size:0.82rem;color:var(--text-muted);">پرداخت هنگام تحویل سفارش</div>
+            </div>
+          </label>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <aside class="card">
+      <h2 style="margin-top:0;font-size:1.1rem;">خلاصه سفارش</h2>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;">
+        {% for ln in summary.lines %}
+        <div style="display:flex;justify-content:space-between;font-size:0.88rem;">
+          <span>{{ ln.product_title }} ({{ ln.variant_label }}) × {{ ln.quantity | fa_digits }}</span>
+          <strong>{{ ln.line_total_rial | toman }}</strong>
+        </div>
+        {% endfor %}
+      </div>
+      <hr style="border:0;border-top:1px solid var(--border);">
+      <div style="display:flex;flex-direction:column;gap:8px;font-size:0.94rem;">
+        <div style="display:flex;justify-content:space-between;"><span>جمع کل:</span><strong>{{ summary.subtotal_rial | toman }}</strong></div>
+        <div style="display:flex;justify-content:space-between;"><span>هزینه ارسال:</span><strong>{{ 'رایگان' if summary.shipping_fee_rial == 0 else (summary.shipping_fee_rial | toman) }}</strong></div>
+        <div style="display:flex;justify-content:space-between;color:var(--success);"><span>تخفیف{% if summary.coupon_code %} ({{ summary.coupon_code }}){% endif %}:</span><strong>{{ summary.discount_rial | toman }}</strong></div>
+        <div style="display:flex;justify-content:space-between;font-size:1.08rem;border-top:1px solid var(--border);padding-top:8px;">
+          <span>مبلغ نهایی:</span>
+          <strong style="color:var(--primary-dark);">{{ summary.total_rial | toman }}</strong>
+        </div>
+      </div>
+
+      <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;margin:14px 0;">
+        <input type="checkbox" name="accept_terms" value="1" required>
+        <a href="/page/terms" target="_blank" style="text-decoration:underline;">قوانین و شرایط استفاده از فروشگاه</a> را مطالعه و قبول دارم.
+      </label>
+
+      <button type="submit" class="btn btn-primary btn-lg" style="width:100%;">ثبت نهایی سفارش و پرداخت</button>
+    </aside>
+  </div>
+</form>
+{% endblock %}

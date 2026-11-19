@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>{{ meta_title or site.default_meta_title or site.site_name }}</title>
+  <meta name="description" content="{{ meta_description or site.default_meta_description }}">
+  {% if noindex %}
+  <meta name="robots" content="noindex, nofollow">
+  {% else %}
+  <meta name="robots" content="index, follow">
+  {% endif %}
+  {% if canonical_url %}
+  <link rel="canonical" href="{{ canonical_url }}">
+  {% endif %}
+  {% if prev_url %}<link rel="prev" href="{{ prev_url }}">{% endif %}
+  {% if next_url %}<link rel="next" href="{{ next_url }}">{% endif %}
+
+  <meta property="og:locale" content="fa_IR">
+  <meta property="og:type" content="{{ og_type or 'website' }}">
+  <meta property="og:title" content="{{ meta_title or site.site_name }}">
+  <meta property="og:description" content="{{ meta_description or site.default_meta_description }}">
+  {% if canonical_url %}<meta property="og:url" content="{{ canonical_url }}">{% endif %}
+  {% if og_image %}<meta property="og:image" content="{{ og_image }}">{% endif %}
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ meta_title or site.site_name }}">
+  <meta name="twitter:description" content="{{ meta_description or site.default_meta_description }}">
+
+  {% if site.site_favicon_path %}
+  <link rel="icon" href="{{ url_for('shop.serve_media', filename=site.site_favicon_path) }}">
+  {% endif %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css', v=asset_v) }}">
+
+  {% if json_ld %}
+    {% for block in json_ld %}
+    <script type="application/ld+json">{{ block | to_json | safe }}</script>
+    {% endfor %}
+  {% endif %}
+</head>
+<body>
+  <div class="top-bar">
+    <div class="container top-bar-inner">
+      <span>{{ site.site_tagline }}</span>
+      <span>پشتیبانی: <a href="tel:{{ site.contact_phone }}">{{ site.contact_phone | fa_digits }}</a> | {{ site.support_hours }}</span>
+    </div>
+  </div>
+
+  <header class="site-header">
+    <div class="container">
+      <div class="header-main">
+        <a href="{{ url_for('shop.home') }}" class="brand-logo">
+          {% if site.site_logo_path %}
+          <img src="{{ url_for('shop.serve_media', filename=site.site_logo_path) }}" alt="{{ site.site_name }}" width="40" height="40">
+          {% else %}
+          <span class="brand-mark" aria-hidden="true">آ</span>
+          {% endif %}
+          <span>{{ site.site_name }}</span>
+        </a>
+
+        <div class="header-search">
+          <form action="{{ url_for('shop.search') }}" method="get" role="search">
+            <input type="search" name="q" value="{{ q|default('') }}" placeholder="جستجوی برنج، حبوبات، ادویه، چای یا کد کالا..." aria-label="جستجو در محصولات">
+            <button type="submit">جستجو</button>
+          </form>
+        </div>
+
+        <div class="header-actions">
+          {% if current_user %}
+            <a href="{{ url_for('account.dashboard') }}" class="btn btn-outline btn-sm">حساب من ({{ current_user.full_name or current_user.mobile }})</a>
+            {% if current_user.role in ['super_admin', 'manager', 'order_operator', 'content_editor'] %}
+            <a href="{{ admin_prefix }}/" class="btn btn-outline btn-sm">پنل مدیریت</a>
+            {% endif %}
+          {% else %}
+            <a href="{{ url_for('auth.login') }}" class="btn btn-outline btn-sm">ورود / ثبت‌نام</a>
+          {% endif %}
+          <a href="{{ url_for('cart.view_cart') }}" class="btn cart-btn btn-sm" aria-label="سبد خرید">
+            <span>سبد خرید</span>
+            <span class="cart-badge" id="header-cart-badge">{{ cart_count | fa_digits }}</span>
+          </a>
+        </div>
+      </div>
+
+      <nav class="main-nav" aria-label="منوی دسته‌بندی‌ها">
+        <ul class="main-nav-list">
+          <li><a href="{{ url_for('shop.home') }}">صفحه اصلی</a></li>
+          <li><a href="{{ url_for('shop.products_list') }}">همه محصولات</a></li>
+          {% for cat in nav_categories if not cat.parent_id %}
+          <li><a href="{{ url_for('shop.category_view', slug=cat.slug) }}">{{ cat.name }}</a></li>
+          {% endfor %}
+          <li><a href="{{ url_for('shop.products_list', offers=1) }}">پیشنهادهای ویژه</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <div class="container">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-stack" role="status" aria-live="polite">
+          {% for category, msg in messages %}
+            <div class="alert alert-{{ category }}">{{ msg }}</div>
+          {% endfor %}
+        </div>
+        {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <h3>{{ site.site_name }}</h3>
+          <p style="font-size:0.9rem;color:#d1d5db;">{{ site.site_tagline }}</p>
+          <p style="font-size:0.86rem;color:#9ca3af;">نشانی: {{ site.contact_address }}<br>تلفن: {{ site.contact_phone | fa_digits }}<br>ایمیل: {{ site.contact_email }}</p>
+        </div>
+        <div>
+          <h3>دسترسی سریع</h3>
+          <ul class="footer-links">
+            <li><a href="{{ url_for('shop.products_list') }}">فروشگاه</a></li>
+            {% for pg in footer_pages %}
+            <li><a href="{{ url_for('shop.static_page', slug=pg.slug) }}">{{ pg.title }}</a></li>
+            {% endfor %}
+          </ul>
+        </div>
+        <div>
+          <h3>خبرنامه پیامکی تخفیف‌ها</h3>
+          <p style="font-size:0.84rem;color:#d1d5db;">از جشنواره‌ها و موجود شدن محصولات تازه باخبر شوید.</p>
+          <form action="{{ url_for('shop.subscribe_newsletter') }}" method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-group" style="margin-bottom:8px;">
+              <input type="tel" name="mobile" class="form-control" placeholder="شماره موبایل (مثلاً ۰۹۱۲۳۴۵۶۷۸۹)" required dir="ltr">
+            </div>
+            <label style="display:flex;align-items:center;gap:6px;font-size:0.8rem;margin-bottom:8px;color:#d1d5db;">
+              <input type="checkbox" name="consent" value="1" required>
+              موافق دریافت پیامک اطلاع‌رسانی هستم
+            </label>
+            <button type="submit" class="btn btn-accent btn-sm">عضویت در خبرنامه</button>
+          </form>
+        </div>
+        <div>
+          <h3>اعتماد و پرداخت امن</h3>
+          {{ site.trust_badge_html | safe }}
+          <p style="font-size:0.82rem;color:#9ca3af;margin-top:10px;">تمامی پرداخت‌ها از طریق درگاه امن بانکی شاپرک انجام می‌شود.</p>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>© {{ site.site_name }} — تمامی حقوق محفوظ است.</span>
+        <span>
+          {% if site.instagram_url %}<a href="{{ site.instagram_url }}" target="_blank" rel="noopener">اینستاگرام</a>{% endif %}
+          {% if site.telegram_url %} | <a href="{{ site.telegram_url }}" target="_blank" rel="noopener">تلگرام</a>{% endif %}
+        </span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="lightbox" id="img-lightbox" role="dialog" aria-label="بزرگ‌نمایی تصویر">
+    <img id="lightbox-img" src="" alt="تصویر بزرگ محصول">
+  </div>
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="{{ url_for('static', filename='js/app.js', v=asset_v) }}" defer></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

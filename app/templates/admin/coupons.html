@@ -1,0 +1,64 @@
+{% extends "admin/_layout.html" %}
+{% block content %}
+<h1 style="margin-top:0;">مدیریت کدهای تخفیف</h1>
+
+<div class="card">
+  <h2 class="card-title" style="margin-bottom:10px;">{{ 'ویرایش کد تخفیف' if edit_coupon else 'ایجاد کد تخفیف جدید' }}</h2>
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="save">
+    <input type="hidden" name="coupon_id" value="{{ edit_coupon.id if edit_coupon else '' }}">
+    <div class="form-row">
+      <div class="form-group"><label>کد تخفیف *</label><input type="text" name="code" value="{{ edit_coupon.code if edit_coupon else '' }}" class="form-control" dir="ltr" required></div>
+      <div class="form-group"><label>عنوان</label><input type="text" name="title" value="{{ edit_coupon.title if edit_coupon else '' }}" class="form-control"></div>
+      <div class="form-group">
+        <label>نوع تخفیف</label>
+        <select name="discount_type" class="form-control">
+          <option value="percent" {% if not edit_coupon or edit_coupon.discount_type == 'percent' %}selected{% endif %}>درصدی (%)</option>
+          <option value="fixed" {% if edit_coupon and edit_coupon.discount_type == 'fixed' %}selected{% endif %}>مبلغ ثابت (تومان)</option>
+        </select>
+      </div>
+      <div class="form-group"><label>مقدار (درصد یا تومان) *</label><input type="number" name="discount_value" value="{{ (edit_coupon.discount_value if edit_coupon.discount_type == 'percent' else edit_coupon.discount_value // 10) if edit_coupon else '' }}" class="form-control" required></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>حداقل سفارش (تومان)</label><input type="number" name="min_order_toman" value="{{ (edit_coupon.min_order_rial // 10) if edit_coupon else 0 }}" class="form-control"></div>
+      <div class="form-group"><label>سقف تخفیف (تومان - اختیاری)</label><input type="number" name="max_discount_toman" value="{{ (edit_coupon.max_discount_rial // 10) if edit_coupon and edit_coupon.max_discount_rial else '' }}" class="form-control"></div>
+      <div class="form-group"><label>سقف استفاده کل</label><input type="number" name="usage_limit" value="{{ edit_coupon.usage_limit if edit_coupon and edit_coupon.usage_limit else '' }}" class="form-control"></div>
+      <div class="form-group"><label>سقف به ازای هر کاربر</label><input type="number" name="per_user_limit" value="{{ edit_coupon.per_user_limit if edit_coupon and edit_coupon.per_user_limit else '' }}" class="form-control"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>شروع (شمسی 1405/08/01)</label><input type="text" name="starts_at_jalali" class="form-control" dir="ltr"></div>
+      <div class="form-group"><label>پایان (شمسی 1405/09/30)</label><input type="text" name="ends_at_jalali" class="form-control" dir="ltr"></div>
+      <div class="form-group" style="display:flex;align-items:center;"><label><input type="checkbox" name="is_active" value="1" {% if not edit_coupon or edit_coupon.is_active %}checked{% endif %}> فعال</label></div>
+    </div>
+    <button type="submit" class="btn btn-primary">ذخیره کد تخفیف</button>
+  </form>
+</div>
+
+<div class="card table-wrap">
+  <table class="admin-table">
+    <thead><tr><th>کد</th><th>عنوان</th><th>مقدار</th><th>استفاده</th><th>مجموع تخفیف</th><th>وضعیت</th><th>عملیات</th></tr></thead>
+    <tbody>
+      {% for c in coupons %}
+      <tr>
+        <td dir="ltr"><strong>{{ c.code }}</strong></td>
+        <td>{{ c.title }}</td>
+        <td>{{ (c.discount_value | fa_digits ~ '٪') if c.discount_type == 'percent' else (c.discount_value | toman) }}</td>
+        <td>{{ c.used_count | fa_digits }} / {{ c.usage_limit | fa_digits if c.usage_limit else '∞' }}</td>
+        <td>{{ c.total_discount_rial | toman }}</td>
+        <td><span class="badge {{ 'badge-success' if c.is_active else 'badge-danger' }}">{{ 'فعال' if c.is_active else 'غیرفعال' }}</span></td>
+        <td>
+          <a href="{{ url_for('admin.coupons_manage', edit=c.id) }}" class="btn btn-sm">ویرایش</a>
+          <form method="post" style="display:inline;" data-confirm="کد تخفیف حذف شود؟">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action" value="delete">
+            <input type="hidden" name="coupon_id" value="{{ c.id }}">
+            <button type="submit" class="btn btn-sm btn-danger">حذف</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

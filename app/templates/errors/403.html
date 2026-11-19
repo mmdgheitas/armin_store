@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card" style="text-align:center;margin-top:40px;padding:48px 20px;">
+  <h1 style="font-size:3rem;margin:0;color:var(--danger);">۴۰۳</h1>
+  <h2>دسترسی غیرمجاز</h2>
+  <p>شما مجوز دسترسی به این بخش را ندارید.</p>
+  <a href="{{ url_for('shop.home') }}" class="btn btn-primary">بازگشت به صفحه اصلی</a>
+</div>
+{% endblock %}

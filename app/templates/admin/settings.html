@@ -1,0 +1,62 @@
+{% extends "admin/_layout.html" %}
+{% block content %}
+<h1 style="margin-top:0;">تنظیمات کلی سایت، ارسال و پرداخت</h1>
+<form method="post" enctype="multipart/form-data">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div class="card">
+    <h2 class="card-title" style="margin-bottom:10px;">هویت فروشگاه و تماس</h2>
+    <div class="form-row">
+      <div class="form-group"><label>نام فروشگاه</label><input type="text" name="site_name" value="{{ settings.site_name }}" class="form-control"></div>
+      <div class="form-group"><label>شعار فروشگاه</label><input type="text" name="site_tagline" value="{{ settings.site_tagline }}" class="form-control"></div>
+      <div class="form-group"><label>تلفن ثابت</label><input type="text" name="contact_phone" value="{{ settings.contact_phone }}" class="form-control" dir="ltr"></div>
+      <div class="form-group"><label>موبایل پشتیبانی</label><input type="text" name="contact_mobile" value="{{ settings.contact_mobile }}" class="form-control" dir="ltr"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>ایمیل</label><input type="email" name="contact_email" value="{{ settings.contact_email }}" class="form-control" dir="ltr"></div>
+      <div class="form-group"><label>ساعات پاسخگویی</label><input type="text" name="support_hours" value="{{ settings.support_hours }}" class="form-control"></div>
+      <div class="form-group"><label>نشانی</label><input type="text" name="contact_address" value="{{ settings.contact_address }}" class="form-control"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>اینستاگرام</label><input type="url" name="instagram_url" value="{{ settings.instagram_url }}" class="form-control" dir="ltr"></div>
+      <div class="form-group"><label>تلگرام</label><input type="url" name="telegram_url" value="{{ settings.telegram_url }}" class="form-control" dir="ltr"></div>
+      <div class="form-group"><label>واتساپ</label><input type="url" name="whatsapp_url" value="{{ settings.whatsapp_url }}" class="form-control" dir="ltr"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>لوگو فروشگاه</label><input type="file" name="site_logo" accept=".jpg,.jpeg,.png,.webp" class="form-control"></div>
+      <div class="form-group"><label>آیکون سایت (Favicon)</label><input type="file" name="site_favicon" accept=".jpg,.jpeg,.png,.webp" class="form-control"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 class="card-title" style="margin-bottom:10px;">تنظیمات ارسال، پرداخت و سفارش</h2>
+    <div class="form-row">
+      <div class="form-group"><label>هزینه ثابت ارسال (تومان)</label><input type="number" name="shipping_fee_toman" value="{{ (settings.shipping_fee_rial | int) // 10 }}" class="form-control"></div>
+      <div class="form-group"><label>حداقل خرید برای ارسال رایگان (تومان - ۰ = غیرفعال)</label><input type="number" name="free_shipping_threshold_toman" value="{{ (settings.free_shipping_threshold_rial | int) // 10 }}" class="form-control"></div>
+      <div class="form-group"><label>پیشوند شماره سفارش</label><input type="text" name="order_number_prefix" value="{{ settings.order_number_prefix }}" class="form-control" dir="ltr"></div>
+      <div class="form-group"><label>مهلت پرداخت سفارش (دقیقه)</label><input type="number" name="reservation_timeout_minutes" value="{{ settings.reservation_timeout_minutes }}" class="form-control"></div>
+      <div class="form-group"><label>آستانه پیش‌فرض کمبود موجودی</label><input type="number" name="low_stock_default_threshold" value="{{ settings.low_stock_default_threshold }}" class="form-control"></div>
+      <div class="form-group"><label>موبایل مدیران برای هشدار (با کاما)</label><input type="text" name="admin_alert_mobiles" value="{{ settings.admin_alert_mobiles }}" class="form-control" dir="ltr"></div>
+    </div>
+    <div style="display:flex;gap:18px;flex-wrap:wrap;margin-top:8px;">
+      <label><input type="checkbox" name="shipping_enabled" value="1" {% if settings.shipping_enabled == '1' %}checked{% endif %}> محاسبه هزینه ارسال فعال باشد</label>
+      <label><input type="checkbox" name="payment_bitpay_enabled" value="1" {% if settings.payment_bitpay_enabled == '1' %}checked{% endif %}> درگاه آنلاین بیت‌پی فعال باشد</label>
+      <label><input type="checkbox" name="payment_cod_enabled" value="1" {% if settings.payment_cod_enabled == '1' %}checked{% endif %}> پرداخت در محل فعال باشد</label>
+      <label><input type="checkbox" name="auto_approve_verified_reviews" value="1" {% if settings.auto_approve_verified_reviews == '1' %}checked{% endif %}> تایید خودکار دیدگاه خریداران</label>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 class="card-title" style="margin-bottom:10px;">سئو پیش‌فرض، آنالیتیکس و نماد اعتماد</h2>
+    <div class="form-group"><label>عنوان متا پیش‌فرض</label><input type="text" name="default_meta_title" value="{{ settings.default_meta_title }}" class="form-control"></div>
+    <div class="form-group"><label>توضیحات متا پیش‌فرض</label><textarea name="default_meta_description" rows="2" class="form-control">{{ settings.default_meta_description }}</textarea></div>
+    <div class="form-row">
+      <div class="form-group"><label>شناسه گوگل آنالیتیکس</label><input type="text" name="analytics_id" value="{{ settings.analytics_id }}" class="form-control" dir="ltr"></div>
+      <div class="form-group"><label>قوانین اضافه robots.txt</label><textarea name="robots_txt_extra" rows="2" class="form-control" dir="ltr">{{ settings.robots_txt_extra }}</textarea></div>
+    </div>
+    <div class="form-group"><label>کد HTML باکس نماد اعتماد / ای‌نماد فوتر</label><textarea name="trust_badge_html" rows="3" class="form-control" dir="ltr">{{ settings.trust_badge_html }}</textarea></div>
+  </div>
+
+  <button type="submit" class="btn btn-primary">ذخیره تمام تنظیمات</button>
+</form>
+{% endblock %}

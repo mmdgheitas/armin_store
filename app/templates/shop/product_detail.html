@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+{% block content %}
+
+<nav class="breadcrumbs" aria-label="مسیر راهنما">
+  {% for label, link in breadcrumbs %}
+    {% if not loop.last %}
+      <a href="{{ link }}">{{ label }}</a><span>/</span>
+    {% else %}
+      <span>{{ label }}</span>
+    {% endif %}
+  {% endfor %}
+</nav>
+
+<article class="pdp-grid">
+  <div>
+    <div class="pdp-main-media" id="pdp-main-media">
+      {% if product.images %}
+        {% set first_img = product.images[0] %}
+        <img src="{{ url_for('shop.serve_media', filename=first_img.webp_path or first_img.file_path) }}"
+             alt="{{ first_img.alt_text or product.title }}"
+             width="{{ first_img.width or 800 }}" height="{{ first_img.height or 600 }}"
+             style="cursor:zoom-in;">
+      {% else %}
+        <div style="color:#9ca3af;">تصویری برای این محصول ثبت نشده است</div>
+      {% endif %}
+    </div>
+
+    <div class="pdp-thumbs">
+      {% for im in product.images %}
+      <button type="button" class="pdp-thumb-btn {% if loop.first %}active{% endif %}"
+              data-media-thumb data-kind="image"
+              data-src="{{ url_for('shop.serve_media', filename=im.webp_path or im.file_path) }}"
+              data-alt="{{ im.alt_text or product.title }}">
+        <img src="{{ url_for('shop.serve_media', filename=im.thumb_path or im.file_path) }}" alt="{{ im.alt_text or product.title }}" loading="lazy">
+      </button>
+      {% endfor %}
+
+      {% for vid in product.videos %}
+      <button type="button" class="pdp-thumb-btn"
+              data-media-thumb
+              data-kind="{{ 'video_upload' if vid.source_type == 'upload' else 'video_embed' }}"
+              data-src="{{ url_for('shop.serve_media', filename=vid.file_path) if vid.source_type == 'upload' else vid.embed_url }}"
+              data-poster="{{ url_for('shop.serve_media', filename=vid.poster_path) if vid.poster_path else '' }}"
+              title="{{ vid.title or 'ویدیو محصول' }}">
+        {% if vid.poster_path %}
+          <img src="{{ url_for('shop.serve_media', filename=vid.poster_path) }}" alt="{{ vid.title or 'پوستر ویدیو' }}" loading="lazy">
+        {% endif %}
+        <span class="video-play-tag">▶</span>
+      </button>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+      <div>
+        <a href="{{ url_for('shop.category_view', slug=product.category_slug) }}" style="font-size:0.85rem;color:var(--primary);font-weight:600;">{{ product.category_name }}</a>
+        <h1 style="margin:4px 0 8px;font-size:1.55rem;">{{ product.title }}</h1>
+      </div>
+      <button type="button" class="btn btn-outline btn-sm" data-wishlist-toggle="{{ product.id }}">
+        {{ '♥ در علاقه‌مندی‌ها' if in_wishlist else '♡ افزودن به علاقه‌مندی' }}
+      </button>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:10px;font-size:0.88rem;">
+      {% if product.brand_origin %}<span>مبدا / برند: <strong>{{ product.brand_origin }}</strong></span>{% endif %}
+      <span>کد کالا (SKU): <strong id="pdp-sku" dir="ltr">{{ product.variants[0].sku if product.variants else '—' }}</strong></span>
+      {% if product.review_count > 0 %}
+      <a href="#reviews" style="color:var(--accent);font-weight:700;">★ {{ product.avg_rating | fa_digits }} ({{ product.review_count | fa_digits }} دیدگاه)</a>
+      {% endif %}
+    </div>
+
+    {% if product.short_description %}
+    <p style="color:var(--text-muted);margin:8px 0 14px;">{{ product.short_description }}</p>
+    {% endif %}
+
+    {% if product.variants %}
+    <div>
+      <label style="font-weight:700;font-size:0.92rem;">انتخاب وزن / بسته‌بندی:</label>
+      <div class="variant-pills">
+        {% for v in product.variants %}
+        <button type="button"
+                class="variant-pill {% if not v.in_stock %}sold-out{% endif %}"
+                data-variant-pill="{{ v.id }}">
+          {{ v.label }}
+        </button>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% set v0 = product.variants[0] if product.variants else None %}
+    <div style="margin:14px 0;padding:14px;background:var(--surface-alt);border-radius:10px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+        <div>
+          <span id="pdp-price" style="font-size:1.5rem;font-weight:800;color:var(--primary-dark);">
+            {{ (v0.price_rial if v0 else 0) | toman }}
+          </span>
+          <span id="pdp-compare-price" class="price-old" style="margin-right:8px;{{ '' if (v0 and v0.compare_at_price_rial and v0.compare_at_price_rial > v0.price_rial) else 'display:none;' }}">
+            {{ v0.compare_at_price_rial | toman if (v0 and v0.compare_at_price_rial and v0.compare_at_price_rial > v0.price_rial) else '' }}
+          </span>
+        </div>
+        {% if v0 and v0.in_stock %}
+          <span id="pdp-stock-msg" class="badge badge-success">{{ ('تنها ' ~ (v0.stock_quantity | fa_digits) ~ ' عدد باقی‌مانده') if v0.low_stock else 'موجود در انبار' }}</span>
+        {% else %}
+          <span id="pdp-stock-msg" class="badge badge-danger">ناموجود</span>
+        {% endif %}
+      </div>
+
+      <div style="display:flex;align-items:center;gap:10px;margin-top:14px;flex-wrap:wrap;">
+        <label for="pdp-qty-input" style="font-size:0.9rem;">تعداد:</label>
+        <input type="number" id="pdp-qty-input" class="form-control" value="1" min="1" max="{{ v0.stock_quantity if (v0 and v0.in_stock) else 99 }}" style="width:85px;">
+        <button type="button" id="pdp-add-btn" class="btn btn-primary btn-lg" data-add-cart data-from-pdp data-variant-id="{{ v0.id if v0 else 0 }}" {% if not v0 or not v0.in_stock %}disabled{% endif %}>
+          {{ 'افزودن به سبد خرید' if (v0 and v0.in_stock) else 'ناموجود' }}
+        </button>
+      </div>
+    </div>
+
+    <div id="pdp-notify-box" class="card" style="display:{{ 'block' if (v0 and not v0.in_stock) else 'none' }};background:var(--warning-bg);border-color:#fde68a;margin-top:12px;">
+      <h3 style="margin:0 0 6px;font-size:0.98rem;">موجود شد به من خبر بده</h3>
+      <p style="margin:0 0 10px;font-size:0.85rem;">شماره موبایل خود را وارد کنید تا به محض شارژ مجدد انبار پیامک ارسال کنیم.</p>
+      <form id="notify-stock-form" style="display:flex;gap:8px;flex-wrap:wrap;">
+        <input type="hidden" name="variant_id" id="notify-variant-id" value="{{ product.variants[0].id if product.variants else 0 }}">
+        <input type="tel" name="mobile" class="form-control" placeholder="۰۹۱۲۳۴۵۶۷۸۹" dir="ltr" style="flex:1;min-width:170px;" required>
+        <button type="submit" class="btn btn-accent btn-sm">ثبت اطلاع‌رسانی</button>
+      </form>
+    </div>
+
+    {% if product.tags %}
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:14px;">
+      {% for t in product.tags %}
+      <a href="{{ url_for('shop.products_list', tag=t.slug) }}" class="badge" style="background:var(--surface-alt);"># {{ t.name }}</a>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div style="margin-top:14px;font-size:0.84rem;color:var(--text-muted);display:flex;gap:12px;flex-wrap:wrap;">
+      <span>اشتراک‌گذاری:</span>
+      <a href="https://t.me/share/url?url={{ canonical_url | urlencode }}&text={{ product.title | urlencode }}" target="_blank" rel="noopener">تلگرام</a>
+      <a href="https://wa.me/?text={{ (product.title ~ ' ' ~ canonical_url) | urlencode }}" target="_blank" rel="noopener">واتساپ</a>
+    </div>
+  </div>
+</article>
+
+<section class="section-block card">
+  <h2 class="section-title" style="margin-bottom:12px;">توضیحات و مشخصات محصول</h2>
+  <div class="rich-content">
+    {{ product.description_html | safe }}
+  </div>
+
+  {% if product.specs %}
+  <h3 style="margin-top:20px;">جدول مشخصات</h3>
+  <div class="table-wrap">
+    <table class="data-table">
+      <tbody>
+        {% for sp in product.specs %}
+        <tr>
+          <th style="width:220px;">{{ sp.spec_key }}</th>
+          <td>{{ sp.spec_value }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</section>
+
+<section class="section-block card" id="reviews">
+  <h2 class="section-title" style="margin-bottom:14px;">دیدگاه‌ها و امتیاز خریداران</h2>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;margin-bottom:20px;">
+    <div style="background:var(--surface-alt);padding:16px;border-radius:10px;">
+      <div style="font-size:2rem;font-weight:800;color:var(--primary-dark);">{{ product.avg_rating | fa_digits }} <span style="font-size:1rem;">از ۵</span></div>
+      <div style="font-size:0.86rem;color:var(--text-muted);">بر اساس {{ product.review_count | fa_digits }} دیدگاه تایید شده</div>
+      {% for star in [5, 4, 3, 2, 1] %}
+        {% set cnt = product['rating_' ~ star ~ '_count'] or 0 %}
+        {% set pct = (cnt * 100 // product.review_count) if product.review_count > 0 else 0 %}
+        <div style="display:flex;align-items:center;gap:8px;font-size:0.82rem;margin-top:4px;">
+          <span style="width:45px;">{{ star | fa_digits }} ستاره</span>
+          <div style="flex:1;height:8px;background:#e5e7eb;border-radius:99px;overflow:hidden;">
+            <div style="width:{{ pct }}%;height:100%;background:var(--accent);"></div>
+          </div>
+          <span style="width:28px;">{{ cnt | fa_digits }}</span>
+        </div>
+      {% endfor %}
+    </div>
+
+    <div>
+      {% if current_user %}
+      <form method="post" action="{{ url_for('shop.post_review', slug=product.slug) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="honeypot-field" aria-hidden="true">
+          <label>Website</label><input type="text" name="website_url" tabindex="-1" autocomplete="off">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>امتیاز شما</label>
+            <select name="rating" class="form-control" required>
+              <option value="5">۵ - عالی</option>
+              <option value="4">۴ - خوب</option>
+              <option value="3">۳ - متوسط</option>
+              <option value="2">۲ - ضعیف</option>
+              <option value="1">۱ - خیلی ضعیف</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>عنوان دیدگاه</label>
+            <input type="text" name="title" class="form-control" placeholder="خلاصه نظر شما">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>متن دیدگاه</label>
+          <textarea name="body" rows="3" class="form-control" required placeholder="تجربه خود از عطر، پخت یا بسته‌بندی محصول را بنویسید..."></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm">ثبت دیدگاه</button>
+      </form>
+      {% else %}
+      <p>برای ثبت دیدگاه ابتدا <a href="{{ url_for('auth.login', next=request.path) }}" style="color:var(--primary);font-weight:700;">وارد حساب کاربری</a> شوید.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if reviews %}
+    {% for r in reviews %}
+    <div style="border-top:1px solid var(--border);padding:14px 0;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+        <div>
+          <strong>{{ r.author_name or 'کاربر فروشگاه' }}</strong>
+          {% if r.is_verified_buyer %}
+          <span class="badge badge-success">خریدار محصول</span>
+          {% endif %}
+          <span style="color:var(--accent);margin-right:6px;">★ {{ r.rating | fa_digits }}</span>
+        </div>
+        <span style="font-size:0.8rem;color:var(--text-muted);">{{ r.created_at | jalali_date }}</span>
+      </div>
+      {% if r.title %}<h4 style="margin:6px 0 4px;">{{ r.title }}</h4>{% endif %}
+      <p style="margin:4px 0;">{{ r.body }}</p>
+      {% if r.admin_reply %}
+      <div style="background:var(--primary-light);padding:10px 12px;border-radius:8px;margin-top:8px;font-size:0.88rem;">
+        <strong>پاسخ فروشگاه:</strong> {{ r.admin_reply }}
+      </div>
+      {% endif %}
+      <div style="margin-top:8px;">
+        <button type="button" class="btn btn-outline btn-sm" data-helpful-btn="{{ r.id }}">
+          مفید بود (<span data-helpful-count>{{ r.helpful_count | fa_digits }}</span>)
+        </button>
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <p style="color:var(--text-muted);">هنوز دیدگاهی برای این محصول ثبت نشده است.</p>
+  {% endif %}
+</section>
+
+{% if product.related_products %}
+<section class="section-block">
+  <h2 class="section-title" style="margin-bottom:14px;">محصولات مرتبط</h2>
+  <div class="products-grid">
+    {% for p in product.related_products %}
+      {% include "partials/_product_card.html" %}
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<section class="section-block" id="recently-viewed-section" style="display:none;">
+  <h2 class="section-title" style="margin-bottom:14px;">بازدیدهای اخیر شما</h2>
+  <div class="products-grid" id="recently-viewed-list" data-exclude-slug="{{ product.slug }}"></div>
+</section>
+
+<script type="application/json" id="pdp-variants-data">{{ product.variants | to_json | safe }}</script>
+<script type="application/json" id="pdp-recent-meta">{{ {
+  "slug": product.slug,
+  "title": product.title,
+  "thumb": (product.images[0].thumb_path if product.images else ""),
+  "price_str": (product.variants[0].price_rial | toman if product.variants else "ناموجود")
+} | to_json | safe }}</script>
+
+{% endblock %}

@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 style="margin:20px 0 16px;">سبد خرید</h1>
+
+{% if summary.warnings %}
+<div class="alert alert-warning">
+  {% for w in summary.warnings %}<div>• {{ w }}</div>{% endfor %}
+</div>
+{% endif %}
+
+{% if summary.lines %}
+<div style="display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start;">
+  <div class="card table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>محصول</th>
+          <th>قیمت واحد</th>
+          <th>تعداد</th>
+          <th>جمع</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ln in summary.lines %}
+        <tr data-cart-row="{{ ln.variant_id }}">
+          <td>
+            <div style="display:flex;align-items:center;gap:10px;">
+              {% if ln.thumb_path %}
+              <img src="{{ url_for('shop.serve_media', filename=ln.thumb_path) }}" alt="{{ ln.product_title }}" style="width:56px;height:44px;object-fit:cover;border-radius:6px;">
+              {% endif %}
+              <div>
+                <a href="{{ url_for('shop.product_detail', slug=ln.product_slug) }}" style="font-weight:700;">{{ ln.product_title }}</a>
+                <div style="font-size:0.82rem;color:var(--text-muted);">{{ ln.variant_label }} | کد: {{ ln.sku }}</div>
+                {% if ln.warning %}
+                <span class="badge badge-danger">{{ ln.warning }}</span>
+                {% endif %}
+              </div>
+            </div>
+          </td>
+          <td>{{ ln.unit_price_rial | toman }}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:4px;">
+              <button type="button" class="btn btn-outline btn-sm" data-qty-step="-1" data-variant-id="{{ ln.variant_id }}">-</button>
+              <input type="text" readonly value="{{ ln.quantity }}" data-cart-qty class="form-control" style="width:46px;text-align:center;padding:4px;">
+              <button type="button" class="btn btn-outline btn-sm" data-qty-step="1" data-variant-id="{{ ln.variant_id }}">+</button>
+            </div>
+          </td>
+          <td data-line-total style="font-weight:700;">{{ ln.line_total_rial | toman }}</td>
+          <td>
+            <button type="button" class="btn btn-sm btn-danger" data-cart-remove="{{ ln.variant_id }}">حذف</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <aside class="card">
+    <h2 style="margin-top:0;font-size:1.1rem;">خلاصه سبد خرید</h2>
+
+    <form method="post" action="{{ url_for('cart.apply_coupon') }}" style="margin-bottom:14px;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label style="font-size:0.86rem;font-weight:600;display:block;margin-bottom:4px;">کد تخفیف</label>
+      <div style="display:flex;gap:6px;">
+        <input type="text" name="coupon_code" value="{{ summary.coupon_code }}" class="form-control" dir="ltr" placeholder="کد تخفیف...">
+        <button type="submit" name="action" value="apply" class="btn btn-outline btn-sm">اعمال</button>
+        {% if summary.coupon_code %}
+        <button type="submit" name="action" value="remove" class="btn btn-danger btn-sm">×</button>
+        {% endif %}
+      </div>
+      {% if summary.coupon_error %}
+      <div style="color:var(--danger);font-size:0.82rem;margin-top:4px;">{{ summary.coupon_error }}</div>
+      {% endif %}
+    </form>
+
+    <div style="display:flex;flex-direction:column;gap:8px;font-size:0.94rem;">
+      <div style="display:flex;justify-content:space-between;">
+        <span>جمع کالاها:</span>
+        <strong id="cart-subtotal">{{ summary.subtotal_rial | toman }}</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;">
+        <span>هزینه ارسال:</span>
+        <strong id="cart-shipping">{{ 'رایگان' if summary.shipping_fee_rial == 0 else (summary.shipping_fee_rial | toman) }}</strong>
+      </div>
+      {% if summary.free_shipping_threshold_rial > 0 and summary.shipping_enabled and summary.shipping_fee_rial > 0 %}
+      <div style="font-size:0.8rem;color:var(--info);">
+        ارسال رایگان برای سفارش‌های بالای {{ summary.free_shipping_threshold_rial | toman }}
+      </div>
+      {% endif %}
+      <div style="display:flex;justify-content:space-between;color:var(--success);">
+        <span>تخفیف:</span>
+        <strong id="cart-discount">{{ summary.discount_rial | toman }}</strong>
+      </div>
+      <hr style="border:0;border-top:1px solid var(--border);width:100%;">
+      <div style="display:flex;justify-content:space-between;font-size:1.08rem;">
+        <span>مبلغ قابل پرداخت:</span>
+        <strong id="cart-total" style="color:var(--primary-dark);">{{ summary.total_rial | toman }}</strong>
+      </div>
+    </div>
+
+    <a href="{{ url_for('checkout.index') }}" class="btn btn-primary btn-lg {% if summary.has_stock_issues %}disabled{% endif %}" style="width:100%;margin-top:16px;">
+      ادامه فرآیند خرید
+    </a>
+  </aside>
+</div>
+{% else %}
+<div class="card" style="text-align:center;padding:48px 16px;">
+  <h2>سبد خرید شما خالی است</h2>
+  <p style="color:var(--text-muted);">محصولات تازه و اصیل ما را مشاهده کنید و به سبد خرید اضافه نمایید.</p>
+  <a href="{{ url_for('shop.products_list') }}" class="btn btn-primary">مشاهده محصولات</a>
+</div>
+{% endif %}
+{% endblock %}

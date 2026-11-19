@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="max-width:480px;margin:36px auto;">
+  <div class="card" style="border-top:4px solid var(--primary);">
+    <h1 style="margin-top:0;font-size:1.25rem;">شبیه‌ساز درگاه پرداخت بیت‌پی (حالت آزمایشی)</h1>
+    <p style="font-size:0.9rem;color:var(--text-muted);">این صفحه در حالت <code>PAYMENT_MODE=mock</code> برای آزمایش کامل فرآیند پرداخت نمایش داده می‌شود.</p>
+    <div style="background:var(--surface-alt);padding:12px;border-radius:8px;margin:14px 0;font-size:0.92rem;">
+      <div>شماره سفارش: <strong dir="ltr">{{ order.order_number }}</strong></div>
+      <div>شناسه درگاه (id_get): <strong dir="ltr">{{ id_get }}</strong></div>
+      <div>مبلغ قابل پرداخت: <strong>{{ order.total_rial | toman }}</strong> ({{ order.total_rial | rial }})</div>
+    </div>
+    <form method="post" style="display:flex;flex-direction:column;gap:10px;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" name="outcome" value="success" class="btn btn-primary btn-lg">پرداخت موفق (تکمیل تراکنش)</button>
+      <button type="submit" name="outcome" value="fail" class="btn btn-danger">شبیه‌سازی خطای بانکی</button>
+      <button type="submit" name="outcome" value="cancel" class="btn btn-outline">انصراف از پرداخت</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

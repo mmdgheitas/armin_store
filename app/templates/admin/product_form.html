@@ -1,0 +1,297 @@
+{% extends "admin/_layout.html" %}
+{% block content %}
+<div class="card-header">
+  <h1 style="margin:0;">{{ 'ویرایش محصول' if is_edit else 'افزودن محصول جدید' }}</h1>
+  <div style="display:flex;gap:8px;">
+    {% if is_edit and product.status == 'published' %}
+    <a href="{{ url_for('shop.product_detail', slug=product.slug) }}" target="_blank" class="btn">مشاهده در سایت</a>
+    {% endif %}
+    <a href="{{ url_for('admin.products_list') }}" class="btn">بازگشت به لیست</a>
+  </div>
+</div>
+
+<form method="post" enctype="multipart/form-data" data-warn-unsaved>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div class="card">
+    <h2 class="card-title" style="margin-bottom:12px;">اطلاعات پایه</h2>
+    <div class="form-row">
+      <div class="form-group">
+        <label>عنوان محصول *</label>
+        <input type="text" id="prod-title-input" name="title" value="{{ product.title if product else '' }}" class="form-control" required>
+      </div>
+      <div class="form-group">
+        <label>اسلاگ (آدرس یکتا - فارسی یا انگلیسی)</label>
+        <input type="text" id="prod-slug-input" name="slug" value="{{ product.slug if product else '' }}" class="form-control" placeholder="در صورت خالی ماندن خودکار ساخته می‌شود">
+      </div>
+      <div class="form-group">
+        <label>دسته‌بندی *</label>
+        <select name="category_id" class="form-control" required>
+          <option value="">انتخاب دسته‌بندی</option>
+          {% for c in categories %}
+          <option value="{{ c.id }}" {% if product and product.category_id == c.id %}selected{% endif %}>{{ '— ' if c.parent_id else '' }}{{ c.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>مبدا / برند (مثلاً گیلان، قائنات، لاهیجان)</label>
+        <input type="text" name="brand_origin" value="{{ product.brand_origin if product else '' }}" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>وضعیت انتشار</label>
+        <select name="status" class="form-control">
+          <option value="published" {% if product and product.status == 'published' %}selected{% endif %}>منتشرشده</option>
+          <option value="draft" {% if not product or product.status == 'draft' %}selected{% endif %}>پیش‌نویس</option>
+          <option value="archived" {% if product and product.status == 'archived' %}selected{% endif %}>بایگانی</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>برچسب‌ها (با کاما جدا کنید)</label>
+        <input type="text" name="tags" value="{{ product.tags | map(attribute='name') | join('، ') if product and product.tags else '' }}" class="form-control" placeholder="ارگانیک، برداشت جدید، طارم">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label style="display:flex;align-items:center;gap:6px;">
+        <input type="checkbox" name="is_featured" value="1" {% if product and product.is_featured %}checked{% endif %}>
+        نمایش در محصولات ویژه
+      </label>
+    </div>
+
+    <div class="form-group">
+      <label>توضیح کوتاه</label>
+      <textarea name="short_description" rows="2" class="form-control">{{ product.short_description if product else '' }}</textarea>
+    </div>
+
+    <div class="form-group">
+      <label>توضیحات کامل (HTML ایمن مجاز است)</label>
+      <textarea name="description_html" rows="6" class="form-control">{{ product.description_html if product else '' }}</textarea>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">تنوع‌ها (وزن / بسته‌بندی / قیمت و موجودی)</h2>
+      <button type="button" id="add-variant-btn" class="btn btn-sm btn-primary">+ افزودن تنوع</button>
+    </div>
+    <p style="font-size:0.84rem;color:var(--muted);margin-top:0;">تمامی مبالغ را به <strong>تومان</strong> وارد کنید (سیستم به صورت خودکار به ریال ذخیره می‌کند).</p>
+    <div class="table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>عنوان تنوع *</th>
+            <th>SKU یکتا *</th>
+            <th>قیمت (تومان) *</th>
+            <th>قیمت خط‌خورده (تومان)</th>
+            <th>وزن (گرم)</th>
+            <th>موجودی</th>
+            <th>آستانه کمبود</th>
+            <th>وضعیت</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="variants-tbody">
+          {% set v_list = product.variants if (product and product.variants) else [{}] %}
+          {% for v in v_list %}
+          <tr>
+            <td>
+              <input type="hidden" name="variant_id[]" value="{{ v.id or '' }}">
+              <input type="text" name="variant_label[]" value="{{ v.label or '' }}" class="form-control" placeholder="مثلاً ۱ کیلوگرم" required>
+            </td>
+            <td><input type="text" name="variant_sku[]" value="{{ v.sku or '' }}" class="form-control" dir="ltr" required></td>
+            <td><input type="number" name="variant_price_toman[]" value="{{ (v.price_rial // 10) if v.price_rial is defined and v.price_rial is not none else '' }}" class="form-control" min="0" required></td>
+            <td><input type="number" name="variant_compare_toman[]" value="{{ (v.compare_at_price_rial // 10) if v.compare_at_price_rial else '' }}" class="form-control" min="0"></td>
+            <td><input type="number" name="variant_weight[]" value="{{ v.weight_grams if v.weight_grams is defined else 1000 }}" class="form-control" min="0"></td>
+            <td><input type="number" name="variant_stock[]" value="{{ v.stock_quantity if v.stock_quantity is defined else 20 }}" class="form-control" min="0"></td>
+            <td><input type="number" name="variant_threshold[]" value="{{ v.low_stock_threshold if v.low_stock_threshold is defined else 5 }}" class="form-control" min="0"></td>
+            <td>
+              <select name="variant_active[]" class="form-control">
+                <option value="1" {% if v.is_active is not defined or v.is_active %}selected{% endif %}>فعال</option>
+                <option value="0" {% if v.is_active is defined and not v.is_active %}selected{% endif %}>غیرفعال</option>
+              </select>
+            </td>
+            <td><button type="button" class="btn btn-sm btn-danger" onclick="this.closest('tr').remove()">حذف</button></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 class="card-title" style="margin-bottom:12px;">گالری تصاویر محصول</h2>
+    <div id="image-dropzone" class="dropzone">
+      <strong>تصاویر را اینجا بکشید و رها کنید یا کلیک کنید</strong>
+      <div style="font-size:0.82rem;color:var(--muted);">فرمت‌های مجاز: JPG, PNG, WebP — تبدیل خودکار به WebP و ساخت تصویر بندانگشتی</div>
+      <input type="file" id="new-images-input" name="new_images" multiple accept=".jpg,.jpeg,.png,.webp" style="display:none;">
+    </div>
+    <div id="new-images-preview" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;"></div>
+
+    {% if product and product.images %}
+    <div class="table-wrap" style="margin-top:14px;">
+      <table class="admin-table">
+        <thead><tr><th>تصویر</th><th>متن جایگزین (Alt)</th><th>ترتیب</th><th>کاور</th><th>حذف</th></tr></thead>
+        <tbody>
+          {% for im in product.images %}
+          <tr>
+            <td><img src="{{ url_for('shop.serve_media', filename=im.thumb_path or im.file_path) }}" style="width:64px;height:48px;object-fit:cover;border-radius:6px;"></td>
+            <td><input type="text" name="image_alt_{{ im.id }}" value="{{ im.alt_text }}" class="form-control"></td>
+            <td><input type="number" name="image_sort_{{ im.id }}" value="{{ im.sort_order }}" class="form-control" style="width:80px;"></td>
+            <td><input type="radio" name="cover_image_id" value="{{ im.id }}" {% if im.is_cover %}checked{% endif %}></td>
+            <td><input type="checkbox" name="delete_image_ids[]" value="{{ im.id }}"></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2 class="card-title" style="margin-bottom:12px;">ویدیوی محصول (آپلود MP4/WebM یا لینک آپارات/یوتیوب)</h2>
+    <div class="form-row">
+      <div class="form-group">
+        <label>نوع ویدیوی جدید</label>
+        <select name="new_video_source_type" class="form-control">
+          <option value="">بدون افزودن ویدیوی جدید</option>
+          <option value="upload">آپلود فایل ویدیو (MP4 / WebM)</option>
+          <option value="embed">لینک امبد خارجی (آپارات / یوتیوب)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>عنوان ویدیو</label>
+        <input type="text" name="new_video_title" class="form-control" placeholder="مثلاً بررسی کیفیت پخت برنج">
+      </div>
+      <div class="form-group">
+        <label>توضیح کوتاه ویدیو</label>
+        <input type="text" name="new_video_description" class="form-control">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>فایل ویدیو (برای آپلود)</label>
+        <input type="file" name="new_video_file" accept=".mp4,.webm" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>لینک امبد (برای ویدیو خارجی)</label>
+        <input type="url" name="new_video_embed_url" class="form-control" dir="ltr" placeholder="https://www.aparat.com/video/video/embed/videohash/.../vt/frame">
+      </div>
+      <div class="form-group">
+        <label>تصویر پوستر ویدیو (اختیاری)</label>
+        <input type="file" name="new_video_poster" accept=".jpg,.jpeg,.png,.webp" class="form-control">
+      </div>
+    </div>
+
+    {% if product and product.videos %}
+    <div class="table-wrap" style="margin-top:12px;">
+      <table class="admin-table">
+        <thead><tr><th>نوع</th><th>عنوان</th><th>ترتیب</th><th>حذف</th></tr></thead>
+        <tbody>
+          {% for vd in product.videos %}
+          <tr>
+            <td>{{ 'فایل آپلودی' if vd.source_type == 'upload' else 'امبد خارجی' }}</td>
+            <td><input type="text" name="video_title_{{ vd.id }}" value="{{ vd.title }}" class="form-control"></td>
+            <td><input type="number" name="video_sort_{{ vd.id }}" value="{{ vd.sort_order }}" class="form-control" style="width:80px;"></td>
+            <td><input type="checkbox" name="delete_video_ids[]" value="{{ vd.id }}"></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">جدول مشخصات فنی</h2>
+      <button type="button" id="add-spec-btn" class="btn btn-sm">+ افزودن ویژگی</button>
+    </div>
+    <div id="specs-list">
+      {% for sp in (product.specs if product and product.specs else []) %}
+      <div class="form-row" style="margin-bottom:8px;">
+        <input type="text" name="spec_key[]" value="{{ sp.spec_key }}" class="form-control">
+        <input type="text" name="spec_value[]" value="{{ sp.spec_value }}" class="form-control">
+        <button type="button" class="btn btn-sm btn-danger" onclick="this.parentElement.remove()">حذف</button>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 class="card-title" style="margin-bottom:12px;">محصولات مرتبط و تنظیمات سئو (SEO)</h2>
+    <div class="form-group">
+      <label>محصولات مرتبط (انتخاب چندتایی با Ctrl)</label>
+      <select name="related_ids[]" multiple class="form-control" style="min-height:110px;">
+        {% set selected_rel = product.related_products | map(attribute='id') | list if product and product.related_products else [] %}
+        {% for op in other_products %}
+        <option value="{{ op.id }}" {% if op.id in selected_rel %}selected{% endif %}>{{ op.title }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>عنوان سئو (Meta Title) — <span id="meta-title-count">0</span>/60 کاراکتر</label>
+        <input type="text" id="meta-title-input" name="meta_title" value="{{ product.meta_title if product else '' }}" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>آدرس کانونیکال سفارشی (اختیاری)</label>
+        <input type="url" name="canonical_url" value="{{ product.canonical_url if product else '' }}" class="form-control" dir="ltr">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>توضیحات متا (Meta Description) — <span id="meta-desc-count">0</span>/160 کاراکتر</label>
+      <textarea id="meta-desc-input" name="meta_description" rows="2" class="form-control">{{ product.meta_description if product else '' }}</textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>تصویر OG سفارشی (اختیاری)</label>
+        <input type="file" name="og_image" accept=".jpg,.jpeg,.png,.webp" class="form-control">
+      </div>
+      <div class="form-group" style="display:flex;align-items:center;">
+        <label style="display:flex;align-items:center;gap:6px;">
+          <input type="checkbox" name="noindex" value="1" {% if product and product.noindex %}checked{% endif %}>
+          عدم ایندکس در گوگل (noindex)
+        </label>
+      </div>
+    </div>
+
+    <div class="serp-preview">
+      <div style="font-size:0.78rem;color:var(--muted);margin-bottom:4px;">پیش‌نمایش در نتایج گوگل</div>
+      <div class="serp-title" id="serp-title"></div>
+      <div class="serp-url" id="serp-url"></div>
+      <div class="serp-desc" id="serp-desc"></div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:10px;">
+    <button type="submit" class="btn btn-primary" style="padding:11px 28px;font-size:1rem;">ذخیره محصول</button>
+    <a href="{{ url_for('admin.products_list') }}" class="btn">انصراف</a>
+  </div>
+</form>
+
+{% if is_edit and stock_history %}
+<div class="card table-wrap" style="margin-top:20px;">
+  <h2 class="card-title" style="margin-bottom:10px;">تاریخچه گردش موجودی محصول</h2>
+  <table class="admin-table">
+    <thead><tr><th>تنوع</th><th>تغییر</th><th>قبل</th><th>بعد</th><th>دلیل</th><th>توضیح</th><th>تاریخ</th></tr></thead>
+    <tbody>
+      {% for sm in stock_history %}
+      <tr>
+        <td>{{ sm.variant_label }} ({{ sm.sku }})</td>
+        <td dir="ltr" style="font-weight:700;color:{{ 'green' if sm.delta > 0 else 'red' }};">{{ '+' ~ sm.delta if sm.delta > 0 else sm.delta }}</td>
+        <td>{{ sm.before_qty | fa_digits }}</td>
+        <td>{{ sm.after_qty | fa_digits }}</td>
+        <td>{{ sm.reason }}</td>
+        <td>{{ sm.note }}</td>
+        <td style="font-size:0.82rem;">{{ sm.created_at | jalali }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

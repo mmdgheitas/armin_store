@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="max-width:680px;margin:30px auto;">
+  <div class="card">
+    {% if order %}
+      {% if success %}
+        <div style="text-align:center;padding:12px 0;">
+          <div style="font-size:2.6rem;color:var(--success);">✓</div>
+          <h1 style="margin:6px 0;color:var(--success);">سفارش شما با موفقیت ثبت شد</h1>
+          <p>شماره سفارش: <strong dir="ltr">{{ order.order_number }}</strong></p>
+        </div>
+      {% else %}
+        <div style="text-align:center;padding:12px 0;">
+          <div style="font-size:2.6rem;color:var(--danger);">✕</div>
+          <h1 style="margin:6px 0;color:var(--danger);">پرداخت ناموفق یا لغو شد</h1>
+          <p>شماره سفارش: <strong dir="ltr">{{ order.order_number }}</strong></p>
+          <p style="color:var(--text-muted);">در صورت کسر وجه از حساب بانکی، مبلغ ظرف حداکثر ۷۲ ساعت به حساب شما بازگردانده می‌شود.</p>
+          <form method="post" action="{{ url_for('payment.retry', order_number=order.order_number) }}" style="margin-top:12px;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-accent btn-lg">تلاش مجدد برای پرداخت</button>
+          </form>
+        </div>
+      {% endif %}
+
+      <hr style="border:0;border-top:1px solid var(--border);margin:18px 0;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:0.9rem;">
+        <div><strong>وضعیت سفارش:</strong> {{ status_labels.get(order.order_status, order.order_status) }}</div>
+        <div><strong>وضعیت پرداخت:</strong> {{ payment_labels.get(order.payment_status, order.payment_status) }}</div>
+        <div><strong>روش پرداخت:</strong> {{ method_labels.get(order.payment_method, order.payment_method) }}</div>
+        <div><strong>مبلغ کل:</strong> {{ order.total_rial | toman }}</div>
+        {% if payment and payment.trans_id %}
+        <div><strong>کد پیگیری تراکنش:</strong> <span dir="ltr">{{ payment.trans_id }}</span></div>
+        {% endif %}
+        <div><strong>تاریخ:</strong> {{ order.created_at | jalali }}</div>
+      </div>
+
+      <h3 style="margin-top:18px;">اقلام سفارش</h3>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>کالا</th><th>تعداد</th><th>جمع</th></tr></thead>
+          <tbody>
+            {% for it in items %}
+            <tr>
+              <td>{{ it.product_title }} ({{ it.variant_label }})</td>
+              <td>{{ it.quantity | fa_digits }}</td>
+              <td>{{ it.line_total_rial | toman }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;">
+        {% if current_user %}
+        <a href="{{ url_for('account.order_detail', order_number=order.order_number) }}" class="btn btn-primary">پیگیری سفارش در پنل کاربری</a>
+        {% endif %}
+        <a href="{{ url_for('shop.home') }}" class="btn btn-outline">بازگشت به فروشگاه</a>
+      </div>
+    {% else %}
+      <h1 style="color:var(--danger);">خطا در بررسی تراکنش</h1>
+      <p>{{ message }}</p>
+      <a href="{{ url_for('shop.home') }}" class="btn btn-primary">بازگشت به صفحه اصلی</a>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

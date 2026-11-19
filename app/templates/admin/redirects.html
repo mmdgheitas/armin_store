@@ -1,0 +1,30 @@
+{% extends "admin/_layout.html" %}
+{% block content %}
+<h1 style="margin-top:0;">مدیریت ریدایرکت‌ها (۳۰۱ / ۳۰۲)</h1>
+<div class="card">
+  <form method="post" class="form-row">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="save">
+    <input type="text" name="old_path" class="form-control" dir="ltr" placeholder="/old-path" required>
+    <input type="text" name="new_path" class="form-control" dir="ltr" placeholder="/new-path" required>
+    <select name="status_code" class="form-control"><option value="301">301 دائمی</option><option value="302">302 موقت</option></select>
+    <button type="submit" class="btn btn-primary">افزودن ریدایرکت</button>
+  </form>
+</div>
+<div class="card table-wrap">
+  <table class="admin-table">
+    <thead><tr><th>مسیر قدیم</th><th>مسیر جدید</th><th>کد</th><th>بازدید</th><th></th></tr></thead>
+    <tbody>
+      {% for r in redirects %}
+      <tr>
+        <td dir="ltr">{{ r.old_path }}</td>
+        <td dir="ltr">{{ r.new_path }}</td>
+        <td>{{ r.status_code }}</td>
+        <td>{{ r.hits | fa_digits }}</td>
+        <td><form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="delete"><input type="hidden" name="redirect_id" value="{{ r.id }}"><button type="submit" class="btn btn-sm btn-danger">حذف</button></form></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

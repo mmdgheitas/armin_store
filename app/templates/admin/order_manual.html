@@ -1,0 +1,82 @@
+{% extends "admin/_layout.html" %}
+{% block content %}
+<div class="card-header">
+  <h1 style="margin:0;">ثبت سفارش دستی (تلفنی / حضوری)</h1>
+  <a href="{{ url_for('admin.orders_list') }}" class="btn">بازگشت</a>
+</div>
+
+<form method="post" class="card">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="form-row">
+    <div class="form-group">
+      <label>انتخاب مشتری موجود (اختیاری)</label>
+      <select name="customer_user_id" class="form-control">
+        <option value="">مشتری جدید / ثبت با موبایل</option>
+        {% for c in customers %}
+        <option value="{{ c.id }}">{{ c.full_name }} ({{ c.mobile or c.email }})</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group"><label>نام گیرنده *</label><input type="text" name="customer_name" value="{{ form_data.get('customer_name', '') }}" class="form-control" required></div>
+    <div class="form-group"><label>موبایل *</label><input type="tel" name="customer_mobile" value="{{ form_data.get('customer_mobile', '') }}" class="form-control" dir="ltr" required></div>
+    <div class="form-group"><label>ایمیل</label><input type="email" name="customer_email" value="{{ form_data.get('customer_email', '') }}" class="form-control" dir="ltr"></div>
+  </div>
+
+  <div class="form-row">
+    <div class="form-group">
+      <label>استان *</label>
+      <select name="province_id" class="form-control" data-province-select data-city-target="man-city" required>
+        <option value="">انتخاب استان</option>
+        {% for p in provinces %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label>شهر *</label>
+      <select name="city_id" id="man-city" class="form-control" required><option value="">ابتدا استان را انتخاب کنید</option></select>
+    </div>
+    <div class="form-group"><label>کد پستی</label><input type="text" name="shipping_postal_code" class="form-control" dir="ltr" maxlength="10"></div>
+  </div>
+  <div class="form-group"><label>نشانی *</label><input type="text" name="shipping_address" value="{{ form_data.get('shipping_address', '') }}" class="form-control" required></div>
+
+  <h3>اقلام سفارش</h3>
+  <div id="manual-items-list">
+    <div class="form-row" style="margin-bottom:8px;">
+      <select name="item_variant_id[]" class="form-control" required>
+        <option value="">انتخاب محصول و تنوع...</option>
+        {% for v in variants %}
+        <option value="{{ v.id }}">{{ v.product_title }} — {{ v.label }} ({{ v.sku }} | {{ v.price_rial | toman }} | موجودی: {{ v.stock_quantity }})</option>
+        {% endfor %}
+      </select>
+      <input type="number" name="item_qty[]" value="1" min="1" class="form-control" style="max-width:120px;">
+    </div>
+  </div>
+  <button type="button" class="btn btn-sm" style="margin-bottom:14px;" onclick="
+    const host = document.getElementById('manual-items-list');
+    const row = host.firstElementChild.cloneNode(true);
+    row.querySelector('input').value = 1;
+    host.appendChild(row);
+  ">+ افزودن قلم دیگر</button>
+
+  <div class="form-row">
+    <div class="form-group"><label>هزینه ارسال (تومان)</label><input type="number" name="shipping_fee_toman" value="0" min="0" class="form-control"></div>
+    <div class="form-group"><label>تخفیف (تومان)</label><input type="number" name="discount_toman" value="0" min="0" class="form-control"></div>
+    <div class="form-group">
+      <label>روش پرداخت</label>
+      <select name="payment_method" class="form-control">
+        <option value="offline">پرداخت حضوری / کارت به کارت (تایید شده)</option>
+        <option value="pay_link">ارسال لینک پرداخت پیامکی</option>
+        <option value="cod">پرداخت در محل</option>
+      </select>
+    </div>
+  </div>
+  <label style="display:flex;align-items:center;gap:6px;margin-bottom:12px;">
+    <input type="checkbox" name="send_pay_sms" value="1"> ارسال پیامک لینک پرداخت برای روش لینک پرداخت
+  </label>
+  <div class="form-row">
+    <div class="form-group"><label>یادداشت مدیر</label><input type="text" name="admin_note" class="form-control"></div>
+    <div class="form-group"><label>یادداشت مشتری</label><input type="text" name="customer_note" class="form-control"></div>
+  </div>
+
+  <button type="submit" class="btn btn-primary">ثبت سفارش دستی</button>
+</form>
+{% endblock %}

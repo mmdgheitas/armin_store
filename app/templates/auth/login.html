@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="max-width:480px;margin:32px auto;">
+  <div class="card">
+    <h1 style="margin-top:0;font-size:1.35rem;">ورود یا ثبت‌نام سریع</h1>
+
+    <div style="display:flex;gap:8px;margin-bottom:18px;">
+      <button type="button" class="btn {{ 'btn-primary' if active_tab != 'password' else 'btn-outline' }}" style="flex:1;" onclick="document.getElementById('tab-otp').style.display='block';document.getElementById('tab-pass').style.display='none';">ورود با پیامک (OTP)</button>
+      <button type="button" class="btn {{ 'btn-primary' if active_tab == 'password' else 'btn-outline' }}" style="flex:1;" onclick="document.getElementById('tab-otp').style.display='none';document.getElementById('tab-pass').style.display='block';">ورود با ایمیل و رمز</button>
+    </div>
+
+    <div id="tab-otp" style="display:{{ 'none' if active_tab == 'password' else 'block' }};">
+      <form method="post" action="{{ url_for('auth.login') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="auth_mode" value="otp_verify">
+        <input type="hidden" name="next" value="{{ next_url }}">
+
+        <div class="form-group">
+          <label for="otp-mobile">شماره موبایل</label>
+          <div style="display:flex;gap:8px;">
+            <input type="tel" id="otp-mobile" name="mobile" value="{{ prefill_mobile|default('') }}" class="form-control" dir="ltr" placeholder="09123456789" required>
+            <button type="button" class="btn btn-accent btn-sm" data-send-otp data-mobile-input="#otp-mobile" data-purpose="login" data-status-el="#otp-status-box">ارسال کد</button>
+          </div>
+          <div id="otp-status-box" class="alert alert-info" style="display:none;margin-top:8px;padding:8px 10px;font-size:0.84rem;"></div>
+        </div>
+
+        <div class="form-group">
+          <label for="otp-code">کد تایید ۶ رقمی</label>
+          <input type="text" id="otp-code" name="code" class="form-control" dir="ltr" maxlength="6" placeholder="۱۲۳۴۵۶" required>
+        </div>
+
+        <div class="form-group">
+          <label for="otp-name">نام و نام خانوادگی (برای کاربران جدید)</label>
+          <input type="text" id="otp-name" name="full_name" class="form-control" placeholder="مثلاً علی رضایی">
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width:100%;">ورود به فروشگاه</button>
+      </form>
+    </div>
+
+    <div id="tab-pass" style="display:{{ 'block' if active_tab == 'password' else 'none' }};">
+      <form method="post" action="{{ url_for('auth.login') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="auth_mode" value="password">
+        <input type="hidden" name="next" value="{{ next_url }}">
+
+        <div class="form-group">
+          <label for="login-email">ایمیل</label>
+          <input type="email" id="login-email" name="email" value="{{ prefill_email|default('') }}" class="form-control" dir="ltr" required>
+        </div>
+
+        <div class="form-group">
+          <label for="login-pw">رمز عبور</label>
+          <input type="password" id="login-pw" name="password" class="form-control" dir="ltr" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width:100%;">ورود</button>
+      </form>
+      <div style="margin-top:14px;text-align:center;font-size:0.9rem;">
+        حساب کاربری ندارید؟ <a href="{{ url_for('auth.register') }}" style="color:var(--primary);font-weight:700;">ثبت‌نام با ایمیل</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

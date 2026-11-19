@@ -1,0 +1,59 @@
+{% extends "admin/_layout.html" %}
+{% block content %}
+<h1 style="margin-top:0;">تنظیمات پیامک (SMS.ir) و گزارش ارسال‌ها</h1>
+
+<div class="card">
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="save">
+    <div class="form-row">
+      <div class="form-group"><label>کلید API سامانه SMS.ir</label><input type="text" name="smsir_api_key" value="{{ settings.smsir_api_key }}" class="form-control" dir="ltr"></div>
+      <div class="form-group"><label>شماره خط اختصاصی</label><input type="text" name="smsir_line_number" value="{{ settings.smsir_line_number }}" class="form-control" dir="ltr"></div>
+      <div class="form-group"><label>شناسه قالب کد تایید (OTP)</label><input type="number" name="smsir_otp_template_id" value="{{ settings.smsir_otp_template_id }}" class="form-control" dir="ltr"></div>
+      <div class="form-group"><label>شناسه قالب پرداخت موفق مشتری</label><input type="number" name="smsir_order_paid_template_id" value="{{ settings.smsir_order_paid_template_id }}" class="form-control" dir="ltr"></div>
+      <div class="form-group"><label>شناسه قالب تغییر وضعیت سفارش</label><input type="number" name="smsir_order_status_template_id" value="{{ settings.smsir_order_status_template_id }}" class="form-control" dir="ltr"></div>
+      <div class="form-group"><label>شناسه قالب اطلاع‌رسانی سفارش به مدیر</label><input type="number" name="smsir_admin_order_template_id" value="{{ settings.smsir_admin_order_template_id }}" class="form-control" dir="ltr"></div>
+      <div class="form-group"><label>شناسه قالب کمبود موجودی مدیر</label><input type="number" name="smsir_low_stock_template_id" value="{{ settings.smsir_low_stock_template_id }}" class="form-control" dir="ltr"></div>
+      <div class="form-group"><label>شناسه قالب موجود شدن کالا</label><input type="number" name="smsir_back_in_stock_template_id" value="{{ settings.smsir_back_in_stock_template_id }}" class="form-control" dir="ltr"></div>
+    </div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;margin:10px 0;">
+      <label><input type="checkbox" name="sms_event_order_paid_customer" value="1" {% if settings.sms_event_order_paid_customer == '1' %}checked{% endif %}> پیامک ثبت/پرداخت به مشتری</label>
+      <label><input type="checkbox" name="sms_event_order_status_customer" value="1" {% if settings.sms_event_order_status_customer == '1' %}checked{% endif %}> پیامک تغییر وضعیت به مشتری</label>
+      <label><input type="checkbox" name="sms_event_new_order_admin" value="1" {% if settings.sms_event_new_order_admin == '1' %}checked{% endif %}> پیامک سفارش جدید به مدیر</label>
+      <label><input type="checkbox" name="sms_event_low_stock_admin" value="1" {% if settings.sms_event_low_stock_admin == '1' %}checked{% endif %}> پیامک کمبود موجودی به مدیر</label>
+      <label><input type="checkbox" name="sms_event_back_in_stock" value="1" {% if settings.sms_event_back_in_stock == '1' %}checked{% endif %}> پیامک اطلاع موجودی به مشتریان</label>
+    </div>
+    <button type="submit" class="btn btn-primary">ذخیره تنظیمات پیامک</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2 class="card-title" style="margin-bottom:10px;">ارسال پیامک آزمایشی</h2>
+  <form method="post" class="form-row" style="align-items:end;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="test_send">
+    <div class="form-group"><label>شماره موبایل</label><input type="tel" name="test_mobile" class="form-control" dir="ltr" placeholder="09123456789" required></div>
+    <div class="form-group"><label>متن پیامک</label><input type="text" name="test_message" value="پیامک آزمایشی از پنل مدیریت فروشگاه آرمین" class="form-control" required></div>
+    <div class="form-group"><button type="submit" class="btn btn-accent">ارسال تست</button></div>
+  </form>
+</div>
+
+<div class="card table-wrap">
+  <h2 class="card-title" style="margin-bottom:10px;">لاگ پیامک‌های ارسالی (۶۰ مورد اخیر)</h2>
+  <table class="admin-table">
+    <thead><tr><th>گیرنده</th><th>رویداد</th><th>متن</th><th>وضعیت</th><th>پاسخ سرویس</th><th>تاریخ</th></tr></thead>
+    <tbody>
+      {% for l in logs %}
+      <tr>
+        <td dir="ltr">{{ l.recipient }}</td>
+        <td>{{ l.event_type }}</td>
+        <td style="max-width:280px;">{{ l.message_text }}</td>
+        <td><span class="badge {{ 'badge-success' if l.status == 'sent' else 'badge-danger' }}">{{ l.status }}</span></td>
+        <td dir="ltr" style="font-size:0.78rem;max-width:220px;overflow:hidden;text-overflow:ellipsis;">{{ l.provider_response }}</td>
+        <td style="font-size:0.82rem;">{{ l.created_at | jalali }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

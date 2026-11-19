@@ -1,0 +1,22 @@
+{% extends "admin/_layout.html" %}
+{% block content %}
+<h1 style="margin-top:0;">لیست درخواست‌های اطلاع‌رسانی موجودی</h1>
+<div class="card table-wrap">
+  <table class="admin-table">
+    <thead><tr><th>محصول</th><th>تنوع</th><th>SKU</th><th>موبایل</th><th>موجودی فعلی</th><th>وضعیت اطلاع‌رسانی</th><th>تاریخ ثبت</th></tr></thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td>{{ r.product_title }}</td>
+        <td>{{ r.variant_label }}</td>
+        <td dir="ltr">{{ r.sku }}</td>
+        <td dir="ltr">{{ r.mobile }}</td>
+        <td>{{ r.stock_quantity | fa_digits }}</td>
+        <td>{{ ('ارسال شده در ' ~ (r.notified_at | jalali)) if r.notified_at else 'در انتظار شارژ' }}</td>
+        <td>{{ r.created_at | jalali }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends "admin/_layout.html" %}
+{% block content %}
+<h1 style="margin-top:0;">مدیریت و تایید دیدگاه‌ها</h1>
+
+<div class="card" style="display:flex;gap:8px;flex-wrap:wrap;">
+  <a href="{{ url_for('admin.reviews_manage') }}" class="btn btn-sm {{ 'btn-primary' if not status_filter else '' }}">همه</a>
+  <a href="{{ url_for('admin.reviews_manage', status='pending') }}" class="btn btn-sm {{ 'btn-primary' if status_filter == 'pending' else '' }}">در انتظار تایید</a>
+  <a href="{{ url_for('admin.reviews_manage', status='approved') }}" class="btn btn-sm {{ 'btn-primary' if status_filter == 'approved' else '' }}">منتشرشده</a>
+  <a href="{{ url_for('admin.reviews_manage', status='rejected') }}" class="btn btn-sm {{ 'btn-primary' if status_filter == 'rejected' else '' }}">رد شده</a>
+</div>
+
+<div class="card">
+  {% for r in reviews %}
+  <div style="border-bottom:1px solid var(--border);padding:12px 0;">
+    <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <div>
+        <strong>{{ r.author_name }}</strong> ({{ r.author_mobile or '' }}) — محصول: <a href="{{ url_for('shop.product_detail', slug=r.product_slug) }}" target="_blank" style="color:var(--primary);">{{ r.product_title }}</a>
+        {% if r.is_verified_buyer %}<span class="badge badge-success">خریدار محصول</span>{% endif %}
+        <span class="badge">{{ r.status }}</span>
+        <span>★ {{ r.rating | fa_digits }}</span>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <form method="post" style="display:inline;"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="review_id" value="{{ r.id }}"><button type="submit" name="action" value="approved" class="btn btn-sm btn-primary">تایید</button></form>
+        <form method="post" style="display:inline;"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="review_id" value="{{ r.id }}"><button type="submit" name="action" value="rejected" class="btn btn-sm">رد</button></form>
+        <form method="post" style="display:inline;" data-confirm="دیدگاه حذف شود؟"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="review_id" value="{{ r.id }}"><button type="submit" name="action" value="delete" class="btn btn-sm btn-danger">حذف</button></form>
+      </div>
+    </div>
+    <form method="post" style="margin-top:8px;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="review_id" value="{{ r.id }}">
+      <input type="hidden" name="action" value="reply">
+      <div class="form-row">
+        <input type="text" name="title" value="{{ r.title }}" class="form-control" placeholder="عنوان">
+        <input type="text" name="body" value="{{ r.body }}" class="form-control">
+        <input type="text" name="admin_reply" value="{{ r.admin_reply }}" class="form-control" placeholder="پاسخ عمومی مدیر...">
+        <button type="submit" class="btn btn-sm">ویرایش / پاسخ</button>
+      </div>
+    </form>
+  </div>
+  {% else %}
+  <p>دیدگاهی یافت نشد.</p>
+  {% endfor %}
+</div>
+{% endblock %}

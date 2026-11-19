@@ -1,0 +1,38 @@
+{% extends "admin/_layout.html" %}
+{% block content %}
+<div class="card-header">
+  <h1 style="margin:0;">مدیریت مشتریان ({{ total | fa_digits }})</h1>
+  <a href="{{ url_for('admin.customers_export_csv') }}" class="btn">خروجی CSV</a>
+</div>
+
+<div class="card">
+  <form method="get" class="form-row">
+    <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="نام، موبایل یا ایمیل...">
+    <select name="blocked" class="form-control">
+      <option value="">همه</option>
+      <option value="0" {% if blocked == '0' %}selected{% endif %}>فعال</option>
+      <option value="1" {% if blocked == '1' %}selected{% endif %}>مسدود</option>
+    </select>
+    <button type="submit" class="btn btn-primary">جستجو</button>
+  </form>
+</div>
+
+<div class="card table-wrap">
+  <table class="admin-table">
+    <thead><tr><th>نام</th><th>موبایل</th><th>ایمیل</th><th>سفارش‌ها</th><th>مجموع خرید</th><th>وضعیت</th><th>عملیات</th></tr></thead>
+    <tbody>
+      {% for c in customers %}
+      <tr>
+        <td>{{ c.full_name }}</td>
+        <td dir="ltr">{{ c.mobile or '—' }}</td>
+        <td dir="ltr">{{ c.email or '—' }}</td>
+        <td>{{ c.order_count | fa_digits }}</td>
+        <td>{{ c.total_spent_rial | toman }}</td>
+        <td><span class="badge {{ 'badge-danger' if c.is_blocked else 'badge-success' }}">{{ 'مسدود' if c.is_blocked else 'فعال' }}</span></td>
+        <td><a href="{{ url_for('admin.customer_detail', customer_id=c.id) }}" class="btn btn-sm">پروفایل</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

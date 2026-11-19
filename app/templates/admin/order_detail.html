@@ -1,0 +1,203 @@
+{% extends "admin/_layout.html" %}
+{% block content %}
+<div class="card-header">
+  <h1 style="margin:0;">سفارش <span dir="ltr">{{ order.order_number }}</span></h1>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <a href="{{ url_for('admin.order_print', order_id=order.id, doc_type='invoice') }}" target="_blank" class="btn">چاپ فاکتور</a>
+    <a href="{{ url_for('admin.order_print', order_id=order.id, doc_type='packing') }}" target="_blank" class="btn">برگه بسته‌بندی</a>
+    <a href="{{ url_for('admin.orders_list') }}" class="btn">بازگشت</a>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;">
+  <div class="card">
+    <h2 class="card-title" style="margin-bottom:10px;">اطلاعات مشتری و ارسال</h2>
+    <div><strong>نام گیرنده:</strong> {{ order.customer_name }}</div>
+    <div><strong>موبایل:</strong> <span dir="ltr">{{ order.customer_mobile }}</span></div>
+    <div><strong>ایمیل:</strong> {{ order.customer_email or '—' }}</div>
+    <div><strong>نشانی:</strong> {{ order.shipping_province }}، {{ order.shipping_city }}، {{ order.shipping_address }}</div>
+    <div><strong>کد پستی:</strong> <span dir="ltr">{{ order.shipping_postal_code or '—' }}</span></div>
+    <div><strong>تاریخ ثبت:</strong> {{ order.created_at | jalali }}</div>
+    <div><strong>روش پرداخت:</strong> {{ method_labels.get(order.payment_method, order.payment_method) }}</div>
+    <div><strong>موجودی رزرو شده:</strong> {{ 'بله' if order.stock_reserved else 'خیر' }} | <strong>بازگشت خورده:</strong> {{ 'بله' if order.stock_restocked else 'خیر' }}</div>
+  </div>
+
+  <div class="card">
+    <h2 class="card-title" style="margin-bottom:10px;">تغییر وضعیت و ارسال مرسوله</h2>
+    <div style="margin-bottom:10px;">
+      وضعیت فعلی: <span class="badge badge-info">{{ status_labels.get(order.order_status, order.order_status) }}</span>
+      | پرداخت: <span class="badge {{ 'badge-success' if order.payment_status == 'paid' else 'badge-warning' }}">{{ payment_labels.get(order.payment_status, order.payment_status) }}</span>
+    </div>
+    <form method="post" action="{{ url_for('admin.order_update_status', order_id=order.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-group">
+        <label>تغییر به وضعیت</label>
+        <select name="new_status" class="form-control">
+          <option value="{{ order.order_status }}">{{ status_labels.get(order.order_status) }} (بدون تغییر)</option>
+          {% for st in allowed_next %}
+          <option value="{{ st }}">{{ status_labels.get(st, st) }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>کد رهگیری پستی</label><input type="text" name="tracking_code" value="{{ order.tracking_code }}" class="form-control" dir="ltr"></div>
+        <div class="form-group"><label>نام پیک / پست</label><input type="text" name="carrier_name" value="{{ order.carrier_name }}" class="form-control" placeholder="پست پیشتاز / تیپاکس"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>مبلغ استرداد (تومان - در صورت مرجوع/استرداد)</label><input type="number" name="refund_amount_toman" value="{{ order.refund_amount_rial // 10 if order.refund_amount_rial else '' }}" class="form-control"></div>
+        <div class="form-group"><label>علت استرداد</label><input type="text" name="refund_reason" value="{{ order.refund_reason }}" class="form-control"></div>
+      </div>
+      <div class="form-group">
+        <label>بازگشت موجودی کالاها هنگام مرجوع/استرداد</label>
+        <select name="restock_choice" class="form-control">
+          <option value="1">بله، کالاها به انبار برگردد</option>
+          <option value="0">خیر، موجودی تغییر نکند</option>
+        </select>
+      </div>
+      <div class="form-group"><label>توضیح تاریخچه</label><input type="text" name="note" class="form-control" placeholder="یادداشت برای تاریخچه وضعیت..."></div>
+      <button type="submit" class="btn btn-primary btn-sm">ثبت تغییر وضعیت</button>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <h2 class="card-title" style="margin-bottom:10px;">یادداشت‌های سفارش</h2>
+  <form method="post" action="{{ url_for('admin.order_update_notes', order_id=order.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-row">
+      <div class="form-group">
+        <label>یادداشت داخلی مدیر (مخفی از مشتری)</label>
+        <textarea name="admin_note" rows="2" class="form-control">{{ order.admin_note }}</textarea>
+      </div>
+      <div class="form-group">
+        <label>یادداشت قابل مشاهده برای مشتری</label>
+        <textarea name="customer_note" rows="2" class="form-control">{{ order.customer_note }}</textarea>
+      </div>
+    </div>
+    <input type="hidden" name="tracking_code" value="{{ order.tracking_code }}">
+    <input type="hidden" name="carrier_name" value="{{ order.carrier_name }}">
+    <button type="submit" class="btn btn-sm">ذخیره یادداشت‌ها</button>
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">اقلام و ویرایش سفارش</h2>
+    {% if is_locked %}<span class="badge badge-warning">این سفارش قفل شده است</span>{% endif %}
+  </div>
+  {% if not is_locked %}
+  <form method="post" action="{{ url_for('admin.order_edit', order_id=order.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="table-wrap">
+      <table class="admin-table" id="edit-order-table">
+        <thead><tr><th>کالا و تنوع</th><th>تعداد</th><th>حذف</th></tr></thead>
+        <tbody>
+          {% for it in items %}
+          <tr>
+            <td>
+              <select name="edit_variant_id[]" class="form-control">
+                <option value="{{ it.variant_id }}">{{ it.product_title }} — {{ it.variant_label }} ({{ it.sku }})</option>
+                {% for v in variants if v.id != it.variant_id %}
+                <option value="{{ v.id }}">{{ v.product_title }} — {{ v.label }} ({{ v.sku }} | موجودی: {{ v.stock_quantity }})</option>
+                {% endfor %}
+              </select>
+            </td>
+            <td><input type="number" name="edit_qty[]" value="{{ it.quantity }}" min="1" class="form-control" style="width:90px;"></td>
+            <td><button type="button" class="btn btn-sm btn-danger" onclick="this.closest('tr').remove()">حذف</button></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <button type="button" class="btn btn-sm" style="margin:8px 0;" onclick="
+      const tb = document.querySelector('#edit-order-table tbody');
+      const tr = tb.querySelector('tr').cloneNode(true);
+      tr.querySelector('input').value = 1;
+      tb.appendChild(tr);
+    ">+ افزودن قلم</button>
+
+    <div class="form-row" style="margin-top:10px;">
+      <div class="form-group"><label>استان</label><input type="text" name="shipping_province" value="{{ order.shipping_province }}" class="form-control"></div>
+      <div class="form-group"><label>شهر</label><input type="text" name="shipping_city" value="{{ order.shipping_city }}" class="form-control"></div>
+      <div class="form-group"><label>کد پستی</label><input type="text" name="shipping_postal_code" value="{{ order.shipping_postal_code }}" class="form-control" dir="ltr"></div>
+      <div class="form-group"><label>هزینه ارسال (تومان)</label><input type="number" name="shipping_fee_toman" value="{{ order.shipping_fee_rial // 10 }}" class="form-control"></div>
+      <div class="form-group"><label>تخفیف (تومان)</label><input type="number" name="discount_toman" value="{{ order.discount_rial // 10 }}" class="form-control"></div>
+    </div>
+    <div class="form-group"><label>نشانی</label><input type="text" name="shipping_address" value="{{ order.shipping_address }}" class="form-control"></div>
+    <button type="submit" class="btn btn-primary">ذخیره ویرایش سفارش و تنظیم موجودی</button>
+  </form>
+  {% else %}
+  <div class="table-wrap">
+    <table class="admin-table">
+      <thead><tr><th>محصول</th><th>SKU</th><th>قیمت واحد</th><th>تعداد</th><th>جمع</th></tr></thead>
+      <tbody>
+        {% for it in items %}
+        <tr>
+          <td>{{ it.product_title }} ({{ it.variant_label }})</td>
+          <td dir="ltr">{{ it.sku }}</td>
+          <td>{{ it.unit_price_rial | toman }}</td>
+          <td>{{ it.quantity | fa_digits }}</td>
+          <td>{{ it.line_total_rial | toman }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+  <div style="margin-top:12px;font-weight:700;">
+    جمع کالاها: {{ order.subtotal_rial | toman }} | ارسال: {{ order.shipping_fee_rial | toman }} | تخفیف: {{ order.discount_rial | toman }} | جمع نهایی: {{ order.total_rial | toman }}
+  </div>
+</div>
+
+<div class="card table-wrap">
+  <h2 class="card-title" style="margin-bottom:10px;">اطلاعات پرداخت و تراکنش‌ها</h2>
+  {% if payments %}
+  <table class="admin-table">
+    <thead><tr><th>درگاه</th><th>id_get</th><th>trans_id</th><th>مبلغ</th><th>وضعیت</th><th>پیام</th><th>استعلام مجدد</th></tr></thead>
+    <tbody>
+      {% for p in payments %}
+      <tr>
+        <td>{{ p.gateway }}</td>
+        <td dir="ltr">{{ p.id_get or '—' }}</td>
+        <td dir="ltr">{{ p.trans_id or '—' }}</td>
+        <td>{{ p.amount_rial | toman }}</td>
+        <td><span class="badge">{{ p.status }}</span></td>
+        <td>{{ p.error_message or '—' }}</td>
+        <td>
+          {% if p.id_get %}
+          <form method="post" action="{{ url_for('admin.order_reverify_payment', order_id=order.id) }}" style="display:flex;gap:4px;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="payment_id" value="{{ p.id }}">
+            <input type="text" name="trans_id" value="{{ p.trans_id or '' }}" placeholder="trans_id" class="form-control" style="width:110px;" dir="ltr">
+            <button type="submit" class="btn btn-sm">استعلام</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>تراکنش درگاهی ثبت نشده است.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2 class="card-title" style="margin-bottom:10px;">تاریخچه وضعیت سفارش</h2>
+  <ul style="margin:0;padding-right:18px;">
+    {% for h in history %}
+    <li><strong>{{ status_labels.get(h.to_status, h.to_status) }}</strong> ({{ h.created_at | jalali }}) — {{ h.actor_name or 'سیستم' }} {% if h.note %}: {{ h.note }}{% endif %}</li>
+    {% endfor %}
+  </ul>
+</div>
+
+{% if has_permission('orders_delete') %}
+<div class="card" style="border-color:#fecaca;">
+  <h2 class="card-title" style="color:var(--danger);">حذف سفارش آزمایشی (فقط مدیر کل)</h2>
+  <form method="post" action="{{ url_for('admin.order_delete', order_id=order.id) }}" data-confirm="آیا از حذف دائمی این سفارش مطمئن هستید؟">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn btn-danger btn-sm">حذف کامل سفارش</button>
+  </form>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="account-layout">
+  {% include "account/_nav.html" %}
+  <div style="display:flex;flex-direction:column;gap:16px;">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+        <h1 style="margin:0;font-size:1.25rem;">جزئیات سفارش <span dir="ltr">{{ order.order_number }}</span></h1>
+        <div style="display:flex;gap:8px;">
+          {% if order.payment_status != 'paid' and order.order_status in ['pending_payment', 'failed'] and order.payment_method == 'bitpay' %}
+          <form method="post" action="{{ url_for('account.retry_order_payment', order_number=order.order_number) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-accent btn-sm">پرداخت آنلاین سفارش</button>
+          </form>
+          {% endif %}
+          {% if order.order_status in ['pending_payment', 'paid', 'processing'] %}
+          <form method="post" action="{{ url_for('account.cancel_order', order_number=order.order_number) }}" onsubmit="return confirm('آیا از لغو این سفارش مطمئن هستید؟');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-danger btn-sm">لغو سفارش</button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-top:14px;font-size:0.9rem;">
+        <div><strong>وضعیت سفارش:</strong> {{ status_labels.get(order.order_status, order.order_status) }}</div>
+        <div><strong>وضعیت پرداخت:</strong> {{ payment_labels.get(order.payment_status, order.payment_status) }}</div>
+        <div><strong>روش پرداخت:</strong> {{ method_labels.get(order.payment_method, order.payment_method) }}</div>
+        <div><strong>تاریخ ثبت:</strong> {{ order.created_at | jalali }}</div>
+        {% if order.tracking_code %}
+        <div><strong>کد رهگیری مرسوله:</strong> <span dir="ltr">{{ order.tracking_code }}</span> ({{ order.carrier_name or 'پست' }})</div>
+        {% endif %}
+      </div>
+
+      <div style="background:var(--surface-alt);padding:12px;border-radius:8px;margin-top:12px;font-size:0.9rem;">
+        <strong>نشانی ارسال:</strong> {{ order.customer_name }} — {{ order.shipping_province }}، {{ order.shipping_city }}، {{ order.shipping_address }} | کدپستی: {{ order.shipping_postal_code | fa_digits }} | موبایل: {{ order.customer_mobile | fa_digits }}
+      </div>
+    </div>
+
+    <div class="card table-wrap">
+      <h2 style="margin-top:0;font-size:1.1rem;">اقلام سفارش</h2>
+      <table class="data-table">
+        <thead><tr><th>محصول</th><th>کد</th><th>قیمت واحد</th><th>تعداد</th><th>جمع</th></tr></thead>
+        <tbody>
+          {% for it in items %}
+          <tr>
+            <td>{{ it.product_title }} ({{ it.variant_label }})</td>
+            <td dir="ltr">{{ it.sku }}</td>
+            <td>{{ it.unit_price_rial | toman }}</td>
+            <td>{{ it.quantity | fa_digits }}</td>
+            <td>{{ it.line_total_rial | toman }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <div style="margin-top:12px;display:flex;flex-direction:column;gap:4px;align-items:flex-end;font-size:0.92rem;">
+        <div>جمع کالاها: <strong>{{ order.subtotal_rial | toman }}</strong></div>
+        <div>هزینه ارسال: <strong>{{ order.shipping_fee_rial | toman }}</strong></div>
+        <div>تخفیف: <strong>{{ order.discount_rial | toman }}</strong></div>
+        <div style="font-size:1.05rem;color:var(--primary-dark);">مبلغ کل: <strong>{{ order.total_rial | toman }}</strong></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0;font-size:1.1rem;">تاریخچه وضعیت سفارش</h2>
+      <ul style="margin:0;padding-right:18px;display:flex;flex-direction:column;gap:8px;font-size:0.9rem;">
+        {% for h in history %}
+        <li>
+          <strong>{{ status_labels.get(h.to_status, h.to_status) }}</strong>
+          <span style="color:var(--text-muted);font-size:0.82rem;">({{ h.created_at | jalali }})</span>
+          {% if h.note %} — {{ h.note }}{% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}
