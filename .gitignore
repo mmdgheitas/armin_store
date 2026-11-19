@@ -221,3 +221,23 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ---------------------------------------------------------------------------
+# داده‌های محلی فروشگاه (نباید در Git قرار گیرند)
+# ---------------------------------------------------------------------------
+instance/*.db
+instance/*.db-wal
+instance/*.db-shm
+instance/secret_key.txt
+instance/install_key.txt
+instance/installed.lock
+instance/logs/
+instance/.env
+.env
+storage/
+backups/
+*.zip
+!app/static/fonts/OFL.txt
+.pytest_cache/
+.venv/
+venv/

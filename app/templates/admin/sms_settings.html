@@ -1,0 +1,128 @@
+{% extends "admin/base.html" %}
+{% block title %}تنظیمات پیامک{% endblock %}
+{% block page_title %}تنظیمات پیامک{% endblock %}
+{% block page_sub %}SMS.ir{% endblock %}
+{% block content %}
+{% set base_keys = ['sms_enabled', 'sms_api_key', 'sms_base_url', 'sms_verify_path', 'sms_bulk_path', 'sms_line_number'] %}
+<div class="page-head">
+  <div><h1>تنظیمات پیامک</h1><p>ارسال کد ورود و اطلاع‌رسانی سفارش‌ها با API رسمی SMS.ir</p></div>
+  <div class="page-actions">
+    <form method="post" action="{{ url_for('admin.sms_test') }}" class="d-flex gap-1">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="tel" name="mobile" placeholder="09121234567" maxlength="11" required style="width:140px" dir="ltr">
+      <button class="btn btn-outline">ارسال آزمایشی</button>
+    </form>
+  </div>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card {{ 'accent' if configured else '' }}">
+    <div class="top"><span class="label">وضعیت سرویس</span><span class="icon">✉️</span></div>
+    <div class="value" style="font-size:1rem">{{ 'پیکربندی‌شده' if configured else 'ناقص' }}</div>
+    <div class="hint">کلید API + خط ارسال</div>
+  </div>
+  <div class="stat-card">
+    <div class="top"><span class="label">ارسال پیامک</span><span class="icon">🔔</span></div>
+    <div class="value" style="font-size:1rem">{{ 'فعال' if values.get('sms_enabled') else 'غیرفعال' }}</div>
+    <div class="hint">کلید اصلی فعال/غیرفعال</div>
+  </div>
+  <div class="stat-card">
+    <div class="top"><span class="label">لاگ ارسال</span><span class="icon">🧾</span></div>
+    <div class="value" style="font-size:1rem">{{ logs|length|number }}</div>
+    <div class="hint">آخرین ۲۰ مورد</div>
+  </div>
+</div>
+
+<div class="alert alert-info">
+  الگوها (Pattern) باید در پنل SMS.ir ساخته شوند و کد آن‌ها اینجا وارد شود. پارامترهای هر رویداد به‌صورت استاندارد ارسال می‌شوند؛ برای رویدادهای سفارش، متغیرهای <code dir="ltr">order_number</code>، <code dir="ltr">amount</code> و <code dir="ltr">store_name</code> ارسال می‌شود.
+</div>
+
+<form method="post" action="{{ url_for('admin.sms_settings') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="_sms_form" value="1">
+
+  <div class="panel">
+    <div class="panel-head"><h2>اتصال به SMS.ir</h2></div>
+    <div class="panel-body">
+      <div class="form-grid">
+        {% for key in base_keys %}
+          {% set defn = defs.get(key) %}
+          {% if defn %}
+            <div class="field">
+              {% if defn.type == 'bool' %}
+                <label class="checkbox-line"><input type="checkbox" name="{{ key }}" value="1" {{ 'checked' if values.get(key) }}> {{ defn.label }}</label>
+              {% else %}
+                <label for="{{ key }}">{{ defn.label }}</label>
+                {% if defn.sensitive %}
+                  <input type="password" id="{{ key }}" name="{{ key }}" value="{{ values.get(key, '') }}" autocomplete="new-password">
+                {% else %}
+                  <input type="text" id="{{ key }}" name="{{ key }}" value="{{ values.get(key, '') }}" dir="ltr">
+                {% endif %}
+                {% if defn.help %}<small class="hint">{{ defn.help }}</small>{% endif %}
+              {% endif %}
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head"><h2>الگوها و اطلاع‌رسانی رویدادها</h2></div>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>رویداد</th><th>کد الگو</th><th>ارسال خودکار</th></tr></thead>
+        <tbody>
+          {% for event, label in events %}
+            {% set pattern_key = event_pattern_keys.get(event) %}
+            {% set enabled_key = event_enabled_keys.get(event) %}
+            <tr>
+              <td>{{ label }}<div class="tiny muted" dir="ltr">{{ event }}</div></td>
+              <td>
+                {% if pattern_key %}
+                  <input type="text" name="{{ pattern_key }}" value="{{ values.get(pattern_key, '') }}" dir="ltr" style="max-width:220px" placeholder="کد الگو">
+                {% else %}
+                  <span class="muted tiny">—</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if enabled_key %}
+                  <label class="checkbox-line"><input type="checkbox" name="{{ enabled_key }}" value="1" {{ 'checked' if values.get(enabled_key) }}> فعال</label>
+                {% else %}
+                  <span class="muted tiny">همیشه</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="panel-body">
+      <button type="submit" class="btn btn-primary">💾 ذخیره تنظیمات پیامک</button>
+    </div>
+  </div>
+</form>
+
+<div class="panel">
+  <div class="panel-head"><h2>آخرین پیامک‌ها</h2></div>
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>زمان</th><th>موبایل</th><th>رویداد</th><th>الگو</th><th>وضعیت</th><th>خطا</th></tr></thead>
+      <tbody>
+        {% for log in logs %}
+          <tr>
+            <td class="tiny">{{ log.created_at|jdatetime }}</td>
+            <td dir="ltr">{{ log.mobile }}</td>
+            <td class="tiny">{{ log.event or '—' }}</td>
+            <td class="tiny" dir="ltr">{{ log.pattern_code or '—' }}</td>
+            <td><span class="badge {{ 'badge-success' if log.status == 'sent' else ('badge-danger' if log.status == 'failed' else 'badge-muted') }}">{{ {'sent': 'ارسال شد', 'failed': 'ناموفق', 'skipped': 'رد شد'}.get(log.status, log.status) }}</span></td>
+            <td class="tiny text-danger">{{ log.error_message or '' }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6"><div class="empty"><p>پیامکی ارسال نشده است.</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

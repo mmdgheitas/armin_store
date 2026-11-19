@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>درگاه آزمایشی — {{ store_name }}</title>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+<body style="background:#f1f5f9">
+  <div class="container">
+    <div class="result-card">
+      <div class="result-icon pending">🧪</div>
+      <h1>درگاه پرداخت آزمایشی</h1>
+      <p>این صفحه فقط در حالت آزمایشی نمایش داده می‌شود و هیچ تراکنش واقعی انجام نمی‌شود.</p>
+      <div class="result-details">
+        <div><span>شماره سفارش</span><strong>{{ order.order_number }}</strong></div>
+        <div><span>مبلغ قابل پرداخت</span><strong>{{ order.total_amount|money }}</strong></div>
+        <div><span>توکن تراکنش</span><strong class="tiny">{{ payment.authority_or_token }}</strong></div>
+      </div>
+      <form method="post" action="{{ url_for('payment.test_complete', token=payment.authority_or_token) }}" class="result-actions">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" name="action" value="success" class="btn btn-primary">پرداخت موفق (آزمایشی)</button>
+        <button type="submit" name="action" value="failed" class="btn btn-danger">پرداخت ناموفق (آزمایشی)</button>
+      </form>
+      <p class="tiny text-muted">برای استفاده واقعی، در تنظیمات درگاه، حالت آزمایشی را خاموش و کلید API را وارد کنید.</p>
+    </div>
+  </div>
+</body>
+</html>

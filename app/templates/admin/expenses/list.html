@@ -1,0 +1,83 @@
+{% extends "admin/base.html" %}
+{% from "_macros.html" import pagination %}
+{% block title %}هزینه‌ها{% endblock %}
+{% block page_title %}هزینه‌ها{% endblock %}
+{% block page_sub %}{{ page.total|number }} رکورد{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>هزینه‌های عملیاتی</h1><p>هزینه‌ها در محاسبه سود عملیاتی لحاظ می‌شوند.</p></div>
+  <div class="page-actions"><a class="btn btn-outline" href="{{ url_for('admin.reports_profit') }}">گزارش سود</a></div>
+</div>
+
+<div class="dashboard-grid">
+  <div class="panel">
+    <div class="panel-head">
+      <h2>فهرست هزینه‌ها</h2>
+      <form method="get" class="d-flex gap-1">
+        <select name="category" onchange="this.form.submit()">
+          <option value="">همه دسته‌ها</option>
+          {% for item in categories %}<option value="{{ item }}" {{ 'selected' if selected_category == item }}>{{ item }}</option>{% endfor %}
+        </select>
+      </form>
+    </div>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>عنوان</th><th>دسته</th><th>مبلغ</th><th>تاریخ</th><th>ثبت‌کننده</th><th>عملیات</th></tr></thead>
+        <tbody>
+          {% for expense in page.items %}
+            <tr>
+              <td>
+                <strong>{{ expense.title }}</strong>
+                {% if expense.description %}<div class="tiny muted">{{ expense.description|truncate(80) }}</div>{% endif %}
+                <details class="mt-1">
+                  <summary class="tiny" style="cursor:pointer">ویرایش</summary>
+                  <form method="post" action="{{ url_for('admin.expense_save', expense_id=expense.id) }}" class="mt-1" style="min-width:280px">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="field"><label>عنوان</label><input type="text" name="title" value="{{ expense.title }}" required maxlength="200"></div>
+                    <div class="field mt-1"><label>دسته</label><input type="text" name="category" value="{{ expense.category or '' }}" maxlength="80"></div>
+                    <div class="field mt-1"><label>مبلغ</label><input type="number" name="amount" value="{{ expense.amount }}" min="1" required></div>
+                    <div class="field mt-1"><label>تاریخ</label><input type="date" name="expense_date" value="{{ expense.expense_date.isoformat() if expense.expense_date else today }}"></div>
+                    <div class="field mt-1"><label>توضیح</label><textarea name="description" style="min-height:60px">{{ expense.description or '' }}</textarea></div>
+                    <button type="submit" class="btn btn-primary btn-sm mt-1">ذخیره</button>
+                  </form>
+                </details>
+              </td>
+              <td class="tiny">{{ expense.category or '—' }}</td>
+              <td class="num">{{ expense.amount|money }}</td>
+              <td class="tiny">{{ expense.expense_date|jdate if expense.expense_date else '—' }}</td>
+              <td class="tiny">{{ expense.creator.full_name if expense.creator else '—' }}</td>
+              <td>
+                <form method="post" action="{{ url_for('admin.expense_delete', expense_id=expense.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-danger btn-sm" data-confirm="هزینه حذف شود؟">حذف</button>
+                </form>
+              </td>
+            </tr>
+          {% else %}
+            <tr><td colspan="6"><div class="empty"><p>هزینه‌ای ثبت نشده است.</p></div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {{ pagination(page) }}
+  </div>
+
+  <div class="panel">
+    <div class="panel-head"><h2>ثبت هزینه جدید</h2></div>
+    <div class="panel-body">
+      <form method="post" action="{{ url_for('admin.expense_save') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="field"><label for="title">عنوان <span class="req">*</span></label><input type="text" id="title" name="title" required maxlength="200" placeholder="اجاره انبار"></div>
+        <div class="field mt-1"><label for="category">دسته</label><input type="text" id="category" name="category" maxlength="80" list="expense-categories" placeholder="اجاره، تبلیغات، حقوق...">
+          <datalist id="expense-categories">{% for item in categories %}<option value="{{ item }}">{% endfor %}</datalist>
+        </div>
+        <div class="field mt-1"><label for="amount">مبلغ (تومان) <span class="req">*</span></label><input type="number" id="amount" name="amount" min="1" required></div>
+        <div class="field mt-1"><label for="expense_date">تاریخ</label><input type="date" id="expense_date" name="expense_date" value="{{ today }}"></div>
+        <div class="field mt-1"><label for="description">توضیح</label><textarea id="description" name="description" style="min-height:70px"></textarea></div>
+        <button type="submit" class="btn btn-primary btn-block mt-2">➕ ثبت هزینه</button>
+      </form>
+      <div class="alert alert-info mt-2 mb-0">جمع این صفحه: <strong>{{ page_total|money }}</strong></div>
+    </div>
+  </div>
+</div>
+{% endblock %}

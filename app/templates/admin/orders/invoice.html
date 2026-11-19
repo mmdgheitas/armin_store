@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>فاکتور {{ order.order_number }} — {{ store_name }}</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+  <style>
+    body { background: #f1f5f9; padding: 20px; }
+    .invoice { box-shadow: var(--a-shadow); }
+    @media print { body { padding: 0; background: #fff; } .invoice { box-shadow: none; border-radius: 0; } }
+  </style>
+</head>
+<body>
+<div class="invoice" style="max-width:900px;margin:0 auto">
+  <div class="invoice-head">
+    <div>
+      <h2>{{ store_name }}</h2>
+      {% if settings.contact_address %}<div class="small muted">{{ settings.contact_address }}</div>{% endif %}
+      {% if settings.contact_phone %}<div class="small muted" dir="ltr">{{ settings.contact_phone }}</div>{% endif %}
+    </div>
+    <div style="text-align:left">
+      <h3 style="margin:0">فاکتور فروش</h3>
+      <div class="small">شماره: <strong>{{ order.order_number }}</strong></div>
+      <div class="small">تاریخ: {{ order.created_at|jdatetime }}</div>
+      <div class="small">وضعیت: {{ order.status_label }}</div>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2 flex-wrap mb-2" style="justify-content:space-between">
+    <div>
+      <strong class="small">خریدار:</strong>
+      <div class="small">{{ order.customer_name }}</div>
+      <div class="small" dir="ltr">{{ order.customer_mobile }}</div>
+      {% if order.shipping_address.get('full_address') %}
+        <div class="small muted">{{ order.shipping_address.get('province', '') }}، {{ order.shipping_address.get('city', '') }} — {{ order.shipping_address.get('full_address') }}</div>
+      {% endif %}
+    </div>
+    <div class="no-print">
+      <button type="button" class="btn btn-primary btn-sm" onclick="window.print()">🖨️ چاپ فاکتور</button>
+      <button type="button" class="btn btn-outline btn-sm" onclick="window.close()">بستن</button>
+    </div>
+  </div>
+
+  <table class="invoice-table">
+    <thead>
+      <tr><th>#</th><th>کالا</th><th>تنوع / کد</th><th>تعداد</th><th>قیمت واحد</th><th>مبلغ</th></tr>
+    </thead>
+    <tbody>
+      {% for item in order.items %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>{{ item.product_name_snapshot }}</td>
+          <td class="tiny">{{ item.variant_snapshot or '—' }}<br>{{ item.sku_snapshot }}</td>
+          <td>{{ item.quantity|number }}</td>
+          <td>{{ item.unit_price|money }}</td>
+          <td>{{ item.total_price|money }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="invoice-total">
+    <div class="row"><span>جمع کالاها</span><span>{{ order.subtotal|money }}</span></div>
+    {% if order.discount_amount %}<div class="row"><span>تخفیف</span><span>− {{ order.discount_amount|money }}</span></div>{% endif %}
+    <div class="row"><span>هزینه ارسال</span><span>{{ order.shipping_cost|money }}</span></div>
+    {% if order.tax_amount %}<div class="row"><span>مالیات</span><span>{{ order.tax_amount|money }}</span></div>{% endif %}
+    <div class="row total"><span>مبلغ قابل پرداخت</span><span>{{ order.total_amount|money }}</span></div>
+  </div>
+
+  <div class="invoice-note">
+    این فاکتور به‌صورت سیستمی از {{ store_name }} صادر شده است.
+    {% if order.payment_status == 'paid' %}وضعیت پرداخت: پرداخت‌شده{% else %}وضعیت پرداخت: {{ order.payment_status_label }}{% endif %}
+    — واحد پول: {{ order.currency_label }}
+  </div>
+</div>
+</body>
+</html>

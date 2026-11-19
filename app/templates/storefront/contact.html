@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}تماس با ما — {{ store_name }}{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="page-header"><h1>تماس با ما</h1><p>سؤال یا درخواستی دارید؟ برای ما بنویسید؛ در سریع‌ترین زمان پاسخ می‌دهیم.</p></div>
+
+  <div class="checkout-layout">
+    <div class="card">
+      <div class="card-head"><h3>ارسال پیام</h3></div>
+      <form method="post" action="{{ url_for('storefront.contact') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-grid">
+          {% if not current_user %}
+            <div class="field">
+              <label for="name">نام و نام خانوادگی <span class="req">*</span></label>
+              <input type="text" id="name" name="name" required minlength="3" maxlength="150">
+            </div>
+            <div class="field">
+              <label for="mobile">شماره موبایل <span class="req">*</span></label>
+              <input type="tel" id="mobile" name="mobile" required pattern="09[0-9]{9}" maxlength="11" dir="ltr" placeholder="09121234567">
+            </div>
+            <div class="field full">
+              <label for="email">ایمیل <span class="text-muted tiny">(اختیاری)</span></label>
+              <input type="email" id="email" name="email" maxlength="190" dir="ltr">
+            </div>
+          {% endif %}
+          <div class="field full">
+            <label for="subject">موضوع <span class="req">*</span></label>
+            <input type="text" id="subject" name="subject" required minlength="3" maxlength="200" value="تماس با ما">
+          </div>
+          <div class="field full">
+            <label for="message">متن پیام <span class="req">*</span></label>
+            <textarea id="message" name="message" required minlength="10" maxlength="5000" placeholder="پیام خود را بنویسید…"></textarea>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary mt-2">ارسال پیام</button>
+        <p class="tiny text-muted mt-1">پیام شما به‌صورت تیکت پشتیبانی ثبت می‌شود و شماره پیگیری دریافت می‌کنید.</p>
+      </form>
+    </div>
+
+    <aside>
+      <div class="card">
+        <div class="card-head"><h3>اطلاعات تماس</h3></div>
+        {% if settings.contact_address %}<div class="kv"><span>آدرس</span><span>{{ settings.contact_address }}</span></div>{% endif %}
+        {% if settings.contact_phone %}<div class="kv"><span>تلفن</span><span dir="ltr">{{ settings.contact_phone }}</span></div>{% endif %}
+        {% if settings.contact_mobile %}<div class="kv"><span>موبایل</span><span dir="ltr">{{ settings.contact_mobile }}</span></div>{% endif %}
+        {% if settings.contact_email %}<div class="kv"><span>ایمیل</span><span dir="ltr">{{ settings.contact_email }}</span></div>{% endif %}
+        {% if settings.work_hours %}<div class="kv"><span>ساعات پاسخ‌گویی</span><span>{{ settings.work_hours }}</span></div>{% endif %}
+      </div>
+      <div class="card mt-2">
+        <div class="card-head"><h3>پیگیری سریع</h3></div>
+        <p class="small text-muted">وضعیت سفارش خود را با شماره سفارش و موبایل ثبت‌شده پیگیری کنید.</p>
+        <a class="btn btn-outline btn-sm btn-block" href="{{ url_for('storefront.track_order') }}">پیگیری سفارش</a>
+        {% if current_user %}
+          <a class="btn btn-ghost btn-sm btn-block mt-1" href="{{ url_for('account.tickets') }}">تیکت‌های من</a>
+        {% else %}
+          <a class="btn btn-ghost btn-sm btn-block mt-1" href="{{ url_for('auth.login') }}">ورود به حساب</a>
+        {% endif %}
+      </div>
+    </aside>
+  </div>
+</div>
+{% endblock %}

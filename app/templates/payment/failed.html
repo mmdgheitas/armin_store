@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}پرداخت ناموفق — {{ store_name }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="result-card">
+    <div class="result-icon failed">✕</div>
+    <h1>پرداخت انجام نشد</h1>
+    <p>{{ message }}</p>
+    <div class="result-details">
+      <div><span>شماره سفارش</span><strong>{{ order.order_number }}</strong></div>
+      <div><span>مبلغ سفارش</span><strong>{{ order.total_amount|money }}</strong></div>
+      <div><span>وضعیت</span><strong>{{ order.payment_status_label }}</strong></div>
+    </div>
+    <p class="tiny text-muted mt-2">در صورت کسر مبلغ از حساب، مبلغ تا حداکثر ۷۲ ساعت کاری توسط بانک بازگشت داده می‌شود. در صورت نیاز با پشتیبانی تماس بگیرید.</p>
+    <div class="result-actions">
+      <a class="btn btn-primary" href="{{ url_for('payment.start', order_number=order.order_number) }}">تلاش دوباره برای پرداخت</a>
+      <a class="btn btn-outline" href="{{ url_for('storefront.order_view', order_number=order.order_number) }}">مشاهده سفارش</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

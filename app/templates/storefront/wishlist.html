@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% from "_macros.html" import product_card, empty_state %}
+{% block title %}علاقه‌مندی‌ها — {{ store_name }}{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="page-header"><h1>علاقه‌مندی‌های من</h1><p>محصولاتی که برای خرید بعدی ذخیره کرده‌اید.</p></div>
+  {% if products %}
+    <div class="product-grid">
+      {% for product in products %}{{ product_card(product) }}{% endfor %}
+    </div>
+  {% else %}
+    {{ empty_state('❤️', 'لیست علاقه‌مندی‌ها خالی است', 'با کلیک روی قلب در کارت محصولات، آن‌ها را اینجا ذخیره کنید.') }}
+    <div class="text-center"><a class="btn btn-primary" href="{{ url_for('storefront.product_list') }}">مشاهده محصولات</a></div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+{% from "_macros.html" import product_card, stars, empty_state %}
+{% block title %}{{ product.seo_title_value }} — {{ store_name }}{% endblock %}
+{% block description %}{{ product.seo_description_value or product.short_description or product.name }}{% endblock %}
+{% block canonical %}<link rel="canonical" href="{{ url_for('storefront.product_detail', slug=product.slug, _external=True) }}">{% endblock %}
+{% block head_extra %}
+  <meta property="og:type" content="product">
+  {% if product.image_url %}<meta property="og:image" content="{{ product.image_url }}">{% endif %}
+  {% if settings.structured_data_enabled %}
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "name": {{ product.name|tojson }},
+    "description": {{ (product.short_description or product.name)|tojson }},
+    "sku": {{ (product.sku or product.slug)|tojson }},
+    {% if product.image_url %}"image": {{ product.image_url|tojson }},{% endif %}
+    "offers": {
+      "@type": "Offer",
+      "price": {{ product.price }},
+      "priceCurrency": {{ settings.currency_code|tojson }},
+      "availability": "{{ 'https://schema.org/InStock' if product.in_stock else 'https://schema.org/OutOfStock' }}"
+    }{% if product.rating_count %},
+    "aggregateRating": {"@type": "AggregateRating", "ratingValue": {{ product.rating_avg }}, "reviewCount": {{ product.rating_count }}}{% endif %}
+  }
+  </script>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+{% set variants_list = variants if variants else product.active_variants %}
+{% set selected = variants_list[0] if variants_list else product.default_variant %}
+<div class="container">
+  <ol class="breadcrumb">
+    <li><a href="{{ url_for('storefront.home') }}">خانه</a></li>
+    {% if product.category %}
+      {% for crumb in product.category.breadcrumb %}
+        <li><a href="{{ url_for('storefront.category_page', slug=crumb.slug) }}">{{ crumb.name }}</a></li>
+      {% endfor %}
+    {% endif %}
+    <li>{{ product.name }}</li>
+  </ol>
+
+  <div class="product-layout">
+    <div>
+      <div class="gallery-main" data-gallery-main>
+        {% if product.image_url %}
+          <img src="{{ product.image_url }}" alt="{{ product.name }}" id="product-main-image">
+        {% else %}
+          <div class="thumb-placeholder">🛍️</div>
+        {% endif %}
+      </div>
+      {% set images = product.images %}
+      {% if images|length > 1 %}
+        <div class="gallery-thumbs">
+          {% for image in images %}
+            <button type="button" class="{{ 'active' if loop.first }}" data-gallery-thumb data-src="{{ image.display_url }}" aria-label="تصویر {{ loop.index }}">
+              <img src="{{ image.thumbnail_url }}" alt="{{ image.alt_text or product.name }}" loading="lazy">
+            </button>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="product-info" data-product-form>
+      <h1>{{ product.name }}</h1>
+      <div class="meta-row">
+        <span>دسته: <a href="{{ url_for('storefront.category_page', slug=product.category.slug) if product.category else '#' }}">{{ product.category.name if product.category else '—' }}</a></span>
+        <span>کد کالا: <strong data-sku-label>{{ selected.sku if selected else product.sku or '—' }}</strong></span>
+        {% if product.sold_count %}<span>{{ product.sold_count|number }} فروش موفق</span>{% endif %}
+        <span>{{ stars(product.rating_avg, product.rating_count) }}</span>
+      </div>
+
+      {% if product.short_description %}<p class="text-muted">{{ product.short_description }}</p>{% endif %}
+
+      <div class="price-box">
+        <div class="d-flex items-center gap-2 flex-wrap">
+          <span class="price" data-price-label>{{ (selected.effective_price if selected else product.price)|money }}</span>
+          <span class="price-old" data-old-price {{ 'style=display:none' if not (selected and selected.compare_at_price and selected.compare_at_price > selected.effective_price) }}>
+            {% if selected and selected.compare_at_price and selected.compare_at_price > selected.effective_price %}{{ selected.compare_at_price|money }}{% endif %}
+          </span>
+          {% if product.discount_percent > 0 %}<span class="discount-pill">{{ product.discount_percent|number }}٪ تخفیف</span>{% endif %}
+        </div>
+        <div class="tiny text-muted mt-1">
+          {% if product.is_digital %}این محصول دانلودی است و بلافاصله پس از پرداخت قابل دریافت خواهد بود.{% else %}قیمت شامل مالیات نیست؛ در صورت فعال بودن مالیات، در مرحله پرداخت محاسبه می‌شود.{% endif %}
+        </div>
+      </div>
+
+      <div class="stock-note {{ stock_class }}" data-stock-note>
+        <span class="stock-dot"></span>{{ stock_label }}
+      </div>
+
+      <form method="post" action="{{ url_for('cart.add') }}" data-cart-form data-no-guard>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="variant_id" value="{{ selected.id if selected else '' }}">
+        <input type="hidden" name="product_id" value="{{ product.id }}">
+
+        {% if variants_list|length > 1 %}
+          <div class="variant-group">
+            <label>انتخاب تنوع</label>
+            <div class="variant-options">
+              {% for variant in variants_list %}
+                <button type="button"
+                        class="variant-option {{ 'active' if loop.first }}"
+                        data-variant-id="{{ variant.id }}"
+                        data-price="{{ variant.effective_price }}"
+                        data-compare-price="{{ variant.compare_at_price }}"
+                        data-stock="{{ variant.stock_quantity }}"
+                        data-sku="{{ variant.sku }}"
+                        {% if variant.image_url %}data-image="{{ variant.image_url }}"{% endif %}
+                        {{ 'disabled' if not product.is_digital and variant.stock_quantity <= 0 }}>
+                  {{ variant.label_with_names }}
+                  {% if not product.is_digital and variant.stock_quantity is defined %}— {{ variant.stock_quantity|number }} عدد{% endif %}
+                </button>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+
+        <div class="buy-row">
+          <div class="qty-control" data-qty>
+            <button type="button" data-qty-plus aria-label="افزایش">+</button>
+            <input type="number" name="quantity" value="1" min="1" max="{{ 999 if product.is_digital else (selected.stock_quantity if selected else 1) }}" aria-label="تعداد">
+            <button type="button" data-qty-minus aria-label="کاهش">−</button>
+          </div>
+          <button type="submit" class="btn btn-primary btn-lg" data-add-btn {{ 'disabled' if not product.in_stock }}>
+            {{ 'افزودن به سبد خرید' if product.in_stock else 'ناموجود' }}
+          </button>
+          <button type="button" class="wish-btn {{ 'active' if in_wishlist }}" data-wishlist="{{ product.id }}" aria-label="علاقه‌مندی">
+            <span data-wish-icon>{{ '♥' if in_wishlist else '♡' }}</span>
+          </button>
+          <button type="button" class="wish-btn" data-compare="{{ product.id }}" aria-label="مقایسه">⇄</button>
+        </div>
+      </form>
+
+      {% if not product.in_stock %}
+        <div class="alert alert-warning mt-3">این محصول فعلاً موجود نیست. برای اطلاع از موجودی با پشتیبانی تماس بگیرید.</div>
+      {% endif %}
+
+      <div class="trust-row">
+        <span>✅ ضمانت اصالت</span>
+        <span>🚚 ارسال سراسر کشور</span>
+        <span>♻️ بازگشت ۷ روزه</span>
+        <span>🔒 پرداخت امن</span>
+      </div>
+    </div>
+  </div>
+
+  <section class="section">
+    <div data-tabs>
+      <div class="tabs">
+        <button type="button" class="active" data-tab="description">توضیحات</button>
+        <button type="button" data-tab="specs">مشخصات</button>
+        <button type="button" data-tab="reviews">نظرات ({{ stats.count if stats else product.rating_count }})</button>
+        {% if videos %}<button type="button" data-tab="videos">ویدئوها ({{ videos|length }})</button>{% endif %}
+      </div>
+    </div>
+
+    <div class="tab-panel active" data-panel="description">
+      <div class="card article-content">
+        {% if product.description %}
+          {{ product.description|safe }}
+        {% else %}
+          <p class="text-muted">توضیحاتی برای این محصول ثبت نشده است.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="tab-panel" data-panel="specs">
+      <div class="card">
+        {% if product.specifications_list %}
+          <table class="spec-table">
+            <tbody>
+              {% for item in product.specifications_list %}
+                <tr><td>{{ item.name }}</td><td>{{ item.value }}</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <p class="text-muted mb-0">مشخصاتی برای این محصول ثبت نشده است.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="tab-panel" data-panel="reviews">
+      <div class="card">
+        <div class="rating-summary">
+          <div>
+            <div class="rating-big">{{ product.rating_avg|number }}</div>
+            {{ stars(product.rating_avg, count=None, show_count=False) }}
+            <div class="tiny text-muted">{{ product.rating_count|number }} نظر ثبت‌شده</div>
+          </div>
+          <div>
+            {% for score in [5,4,3,2,1] %}
+              {% set count = stats.distribution.get(score, 0) if stats and stats.distribution else 0 %}
+              <div class="rating-bar">
+                <span class="tiny">{{ score }} ★</span>
+                <span class="bar"><span style="width: {{ (count / (product.rating_count or 1) * 100)|round(0) }}%"></span></span>
+                <span class="tiny">{{ count|number }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        {% if reviews %}
+          {% for review in reviews %}
+            <div class="review-item">
+              <div class="review-head">
+                <span class="avatar-circle">{{ (review.user.full_name[:1] if review.user else 'ک') }}</span>
+                <strong class="small">{{ review.user.full_name if review.user else 'کاربر فروشگاه' }}</strong>
+                {% if review.is_verified_purchase %}<span class="badge badge-success">خرید تأییدشده</span>{% endif %}
+                <span class="review-meta">{{ review.created_at|jdate }}</span>
+                <span class="stars">{{ '★' * review.rating }}{{ '☆' * (5 - review.rating) }}</span>
+              </div>
+              {% if review.title %}<strong class="small">{{ review.title }}</strong>{% endif %}
+              <p class="review-body">{{ review.body }}</p>
+            </div>
+          {% endfor %}
+        {% else %}
+          {{ empty_state('💬', 'هنوز نظری ثبت نشده است', 'اولین نفری باشید که تجربه خود را با دیگران به اشتراک می‌گذارد.') }}
+        {% endif %}
+
+        {% if can_review %}
+          <hr class="divider">
+          <h3>ثبت نظر شما</h3>
+          <form method="post" action="{{ url_for('account.review_create') }}" class="mt-2">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="product_id" value="{{ product.id }}">
+            <div class="field">
+              <label>امتیاز شما</label>
+              <div data-rating-input class="d-flex gap-1" style="font-size:1.5rem;color:#f59e0b">
+                <input type="hidden" name="rating" value="5">
+                {% for i in [1,2,3,4,5] %}<span data-star="{{ i }}" style="cursor:pointer">★</span>{% endfor %}
+              </div>
+            </div>
+            <div class="field mt-2">
+              <label for="review-title">عنوان نظر <span class="text-muted tiny">(اختیاری)</span></label>
+              <input type="text" id="review-title" name="title" maxlength="180">
+            </div>
+            <div class="field mt-2">
+              <label for="review-body">متن نظر <span class="req">*</span></label>
+              <textarea id="review-body" name="body" required minlength="10" maxlength="2000" placeholder="تجربه خود از این محصول را بنویسید…"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary mt-2">ارسال نظر</button>
+          </form>
+        {% elif current_user %}
+          <p class="tiny text-muted mt-2">برای ثبت نظر، خرید این محصول توسط شما باید تأیید شده و نظر قبلی ثبت نشده باشد.</p>
+        {% else %}
+          <p class="small mt-2"><a href="{{ url_for('auth.login', next=request.path) }}">وارد شوید</a> تا نظر خود را ثبت کنید.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if videos %}
+      <div class="tab-panel" data-panel="videos">
+        <div class="card">
+          <div class="video-grid">
+            {% for video in videos %}
+              <div class="video-card">
+                <video controls preload="metadata" src="{{ url_for('storefront.customer_video', video_id=video.id) }}"></video>
+                <p>{{ video.description or (video.user.full_name if video.user else 'ویدئوی مشتری') }}</p>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    {% endif %}
+  </section>
+
+  {% if related %}
+    <section class="section-tight">
+      <div class="section-head"><h2>محصولات مرتبط</h2></div>
+      <div class="product-grid">
+        {% for item in related %}{{ product_card(item) }}{% endfor %}
+      </div>
+    </section>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,115 @@
+{% extends "account/base.html" %}
+{% from "_macros.html" import status_badge %}
+{% block title %}سفارش {{ order.order_number }} — {{ store_name }}{% endblock %}
+{% block account_content %}
+<div class="page-header" style="padding-top:0">
+  <div class="d-flex justify-between items-center flex-wrap gap-2">
+    <div>
+      <h1>سفارش {{ order.order_number }}</h1>
+      <p>ثبت‌شده در {{ order.created_at|jlong }}</p>
+    </div>
+    <div class="d-flex gap-1">
+      {{ status_badge(order.status, order.status_label) }}
+      {{ status_badge(order.payment_status, order.payment_status_label) }}
+      <a class="btn btn-ghost btn-sm" href="{{ url_for('account.orders') }}">بازگشت</a>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-head"><h3>اقلام سفارش</h3></div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>محصول</th><th>تنوع / کد</th><th>قیمت واحد</th><th>تعداد</th><th>جمع</th><th>نوع</th></tr></thead>
+      <tbody>
+        {% for item in order.items %}
+          <tr>
+            <td>
+              <strong class="small">{{ item.product_name_snapshot }}</strong>
+              {% if item.product %}<div class="tiny"><a href="{{ url_for('storefront.product_detail', slug=item.product_slug_snapshot or item.product.slug) }}">مشاهده محصول</a></div>{% endif %}
+            </td>
+            <td class="tiny">{{ item.variant_snapshot or '—' }}<br><span class="text-muted">{{ item.sku_snapshot }}</span></td>
+            <td>{{ item.unit_price|money }}</td>
+            <td>{{ item.quantity|number }}</td>
+            <td><strong>{{ item.total_price|money }}</strong></td>
+            <td>
+              {% if item.is_digital %}
+                <span class="badge badge-digital">دانلودی</span>
+                {% if order.is_paid %}
+                  <div class="mt-1"><a class="btn btn-outline btn-sm" href="{{ download_url(item) }}">دانلود</a></div>
+                {% endif %}
+              {% else %}
+                <span class="badge badge-muted">فیزیکی</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="form-grid">
+  <div class="card">
+    <div class="card-head"><h3>اطلاعات گیرنده</h3></div>
+    <div class="kv"><span>نام گیرنده</span><span>{{ order.customer_name }}</span></div>
+    <div class="kv"><span>موبایل</span><span dir="ltr">{{ order.customer_mobile }}</span></div>
+    {% if order.shipping_address.get('province') %}
+      <div class="kv"><span>استان / شهر</span><span>{{ order.shipping_address.get('province') }} — {{ order.shipping_address.get('city') }}</span></div>
+      <div class="kv"><span>آدرس</span><span>{{ order.shipping_address.get('full_address') }}</span></div>
+    {% endif %}
+    {% if order.shipping_address.get('postal_code') %}<div class="kv"><span>کد پستی</span><span>{{ order.shipping_address.get('postal_code') }}</span></div>{% endif %}
+    {% if order.shipping_method_name %}<div class="kv"><span>روش ارسال</span><span>{{ order.shipping_method_name }}</span></div>{% endif %}
+    {% if order.tracking_code %}
+      <div class="kv"><span>کد رهگیری مرسوله</span><span dir="ltr">{{ order.tracking_code }}</span></div>
+    {% endif %}
+    {% if order.customer_note %}<div class="kv"><span>توضیحات</span><span>{{ order.customer_note }}</span></div>{% endif %}
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h3>صورت‌حساب</h3></div>
+    <div class="summary-row"><span>جمع کالاها</span><span>{{ order.subtotal|money }}</span></div>
+    {% if order.discount_amount %}<div class="summary-row"><span>تخفیف {% if order.coupon_code %}({{ order.coupon_code }}){% endif %}</span><span class="value discount">− {{ order.discount_amount|money }}</span></div>{% endif %}
+    <div class="summary-row"><span>هزینه ارسال</span><span>{{ order.shipping_cost|money }}</span></div>
+    {% if order.tax_amount %}<div class="summary-row"><span>مالیات</span><span>{{ order.tax_amount|money }}</span></div>{% endif %}
+    <div class="summary-row total"><span>مبلغ کل</span><span>{{ order.total_amount|money }}</span></div>
+    {% if order.refund_amount %}<div class="summary-row"><span>مبلغ بازگشتی</span><span class="value discount">{{ order.refund_amount|money }}</span></div>{% endif %}
+
+    <div class="mt-2 d-flex gap-1 flex-wrap">
+      {% if order.can_be_paid %}
+        <a class="btn btn-primary btn-sm" href="{{ url_for('payment.start', order_number=order.order_number) }}">پرداخت سفارش</a>
+      {% endif %}
+      {% if can_cancel %}
+        <form method="post" action="{{ url_for('account.order_cancel', order_number=order.order_number) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-danger btn-sm" data-confirm="سفارش لغو شود؟">لغو سفارش</button>
+        </form>
+      {% endif %}
+      <a class="btn btn-ghost btn-sm" href="{{ url_for('storefront.track_order', order=order.order_number) }}">پیگیری</a>
+      <a class="btn btn-ghost btn-sm" href="{{ url_for('storefront.contact') }}">پشتیبانی</a>
+    </div>
+  </div>
+</div>
+
+<div class="card mt-3">
+  <div class="card-head"><h3>تاریخچه وضعیت</h3></div>
+  <ul style="list-style:none;padding:0;margin:0">
+    {% for row in order.status_history %}
+      <li style="border-bottom:1px solid var(--border);padding:9px 0">
+        <div class="d-flex justify-between flex-wrap gap-1">
+          <span class="small">
+            {% if row.field == 'status' %}وضعیت: {{ order_status_labels.get(row.to_value, row.to_value) }}
+            {% elif row.field == 'payment_status' %}پرداخت: {{ payment_status_labels.get(row.to_value, row.to_value) }}
+            {% elif row.field == 'shipping_status' %}ارسال: {{ shipping_status_labels.get(row.to_value, row.to_value) }}
+            {% else %}{{ row.field }} → {{ row.to_value }}{% endif %}
+          </span>
+          <span class="tiny text-muted">{{ row.created_at|jdatetime }}</span>
+        </div>
+        {% if row.note %}<div class="tiny text-muted">{{ row.note }}</div>{% endif %}
+      </li>
+    {% else %}
+      <li class="text-muted small">تاریخچه‌ای ثبت نشده است.</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}

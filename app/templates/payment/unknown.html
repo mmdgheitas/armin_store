@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}وضعیت پرداخت — {{ store_name }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="result-card">
+    <div class="result-icon pending">؟</div>
+    <h1>وضعیت پرداخت نامشخص است</h1>
+    <p>{{ message }}</p>
+    {% if order %}
+      <div class="result-details">
+        <div><span>شماره سفارش</span><strong>{{ order.order_number }}</strong></div>
+        <div><span>مبلغ</span><strong>{{ order.total_amount|money }}</strong></div>
+      </div>
+      <div class="result-actions">
+        <a class="btn btn-primary" href="{{ url_for('storefront.order_view', order_number=order.order_number) }}">مشاهده سفارش</a>
+        <a class="btn btn-outline" href="{{ url_for('storefront.track_order') }}">پیگیری سفارش</a>
+      </div>
+    {% else %}
+      <div class="result-actions">
+        <a class="btn btn-primary" href="{{ url_for('storefront.track_order') }}">پیگیری سفارش</a>
+        <a class="btn btn-outline" href="{{ url_for('storefront.home') }}">بازگشت به فروشگاه</a>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends "account/base.html" %}
+{% from "_macros.html" import empty_state %}
+{% block title %}ویدئوهای من — {{ store_name }}{% endblock %}
+{% block account_content %}
+<div class="page-header" style="padding-top:0"><h1>ویدئوهای مشتریان</h1><p>تجربه خود از محصولات خریداری‌شده را با دیگران به اشتراک بگذارید.</p></div>
+
+{% if not enabled %}
+  <div class="alert alert-warning">ارسال ویدئو توسط مشتریان در حال حاضر غیرفعال است.</div>
+{% endif %}
+
+<div class="card mb-3">
+  <div class="card-head"><h3>ارسال ویدئوی جدید</h3></div>
+  {% if enabled %}
+    {% if products %}
+      <form method="post" action="{{ url_for('account.video_upload') }}" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-grid">
+          <div class="field">
+            <label>محصول <span class="req">*</span></label>
+            <select name="product_id" required>
+              {% for product in products %}<option value="{{ product.id }}">{{ product.name }}</option>{% endfor %}
+            </select>
+            <small class="hint">فقط برای محصولاتی که خریداری کرده‌اید.</small>
+          </div>
+          <div class="field">
+            <label>فایل ویدئو <span class="req">*</span></label>
+            <input type="file" name="video" accept="video/mp4,video/webm,video/quicktime,video/x-matroska" required>
+            <small class="hint">حداکثر {{ settings.customer_video_max_mb }} مگابایت — فرمت‌های MP4/WebM/MOV/MKV</small>
+          </div>
+          <div class="field full">
+            <label>توضیح کوتاه</label>
+            <textarea name="description" maxlength="2000" style="min-height:70px" placeholder="تجربه خود را بنویسید…"></textarea>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary mt-2">ارسال ویدئو برای بررسی</button>
+      </form>
+    {% else %}
+      <p class="text-muted small mb-0">برای ارسال ویدئو باید حداقل یک محصول خریداری‌شده داشته باشید.</p>
+    {% endif %}
+  {% endif %}
+</div>
+
+{% if videos %}
+  <div class="video-grid">
+    {% for video in videos %}
+      <div class="video-card">
+        <video controls preload="metadata" src="{{ url_for('storefront.customer_video', video_id=video.id) }}"></video>
+        <div style="padding:10px 12px">
+          <div class="d-flex justify-between items-center gap-1">
+            <strong class="small">{{ video.product.name if video.product else '—' }}</strong>
+            <span class="badge {{ 'badge-success' if video.status == 'approved' else ('badge-danger' if video.status == 'rejected' else 'badge-warning') }}">{{ video.status_label }}</span>
+          </div>
+          {% if video.description %}<p class="tiny text-muted mb-0 mt-1">{{ video.description }}</p>{% endif %}
+          {% if video.admin_note %}<p class="tiny text-danger mb-0">یادداشت مدیر: {{ video.admin_note }}</p>{% endif %}
+          {% if video.status != 'approved' %}
+            <form method="post" action="{{ url_for('account.video_delete', video_id=video.id) }}" class="mt-1">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="cart-item-remove" data-confirm="ویدئو حذف شود؟">حذف ویدئو</button>
+            </form>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  {{ empty_state('🎬', 'ویدئویی ارسال نکرده‌اید', 'ویدئوی خود را ارسال کنید تا پس از تأیید در صفحه محصول نمایش داده شود.') }}
+{% endif %}
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends "account/base.html" %}
+{% from "_macros.html" import empty_state %}
+{% block title %}نظرات من — {{ store_name }}{% endblock %}
+{% block account_content %}
+<div class="page-header" style="padding-top:0"><h1>نظرات من</h1><p>نظرات ثبت‌شده شما برای محصولات</p></div>
+{% if reviews %}
+  <div class="card" style="padding:0">
+    {% for review in reviews %}
+      <div style="padding:16px;border-bottom:1px solid var(--border)">
+        <div class="d-flex justify-between flex-wrap gap-1 items-center">
+          <a href="{{ url_for('storefront.product_detail', slug=review.product.slug) }}" class="small"><strong>{{ review.product.name }}</strong></a>
+          <span class="stars">{{ '★' * review.rating }}{{ '☆' * (5 - review.rating) }}</span>
+        </div>
+        <div class="tiny text-muted">{{ review.created_at|jdatetime }} — وضعیت: {{ review.status_label }}</div>
+        {% if review.title %}<strong class="small">{{ review.title }}</strong>{% endif %}
+        <p class="small mb-0 mt-1">{{ review.body }}</p>
+        {% if review.admin_note %}<div class="tiny text-muted mt-1">یادداشت مدیر: {{ review.admin_note }}</div>{% endif %}
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  {{ empty_state('💬', 'نظری ثبت نکرده‌اید', 'پس از خرید محصول می‌توانید نظر و امتیاز خود را ثبت کنید.') }}
+{% endif %}
+{% endblock %}

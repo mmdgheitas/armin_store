@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}{{ post.seo_title or post.title }} — {{ store_name }}{% endblock %}
+{% block description %}{{ post.seo_description or post.excerpt or post.title }}{% endblock %}
+{% block canonical %}<link rel="canonical" href="{{ url_for('storefront.blog_detail', slug=post.slug, _external=True) }}">{% endblock %}
+{% block head_extra %}
+  <meta property="og:type" content="article">
+  {% if post.cover_image %}<meta property="og:image" content="{{ media_url(post.cover_image) }}">{% endif %}
+  <meta property="article:published_time" content="{{ (post.published_at or post.created_at).isoformat() }}">
+{% endblock %}
+{% block content %}
+<div class="container">
+  <ol class="breadcrumb">
+    <li><a href="{{ url_for('storefront.home') }}">خانه</a></li>
+    <li><a href="{{ url_for('storefront.blog_list') }}">وبلاگ</a></li>
+    <li>{{ post.title }}</li>
+  </ol>
+
+  <div class="listing-layout" style="grid-template-columns:1fr 300px">
+    <article class="card">
+      <h1 style="font-size:1.5rem">{{ post.title }}</h1>
+      <div class="blog-meta mb-2">
+        {% if post.category %}<span class="badge badge-primary">{{ post.category.name }}</span>{% endif %}
+        {{ (post.published_at or post.created_at)|jlong }}
+        {% if post.author %} — نویسنده: {{ post.author.full_name }}{% endif %}
+        — {{ post.views|number }} بازدید
+      </div>
+      {% if post.cover_image %}
+        <img src="{{ media_url(post.cover_image) }}" alt="{{ post.title }}" style="border-radius:var(--radius);margin-bottom:16px">
+      {% endif %}
+      <div class="article-content">{{ post.content|safe }}</div>
+    </article>
+
+    <aside>
+      <div class="card">
+        <div class="card-head"><h3>مقالات مرتبط</h3></div>
+        {% if related %}
+          <ul style="list-style:none;padding:0;margin:0">
+            {% for item in related %}
+              <li style="padding:8px 0;border-bottom:1px solid var(--border)">
+                <a href="{{ url_for('storefront.blog_detail', slug=item.slug) }}" class="small">{{ item.title }}</a>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="small text-muted mb-0">مقاله مرتبطی وجود ندارد.</p>
+        {% endif %}
+      </div>
+      <div class="card mt-2">
+        <div class="card-head"><h3>فروشگاه</h3></div>
+        <p class="small text-muted">محصولات باکیفیت با ارسال سریع و ضمانت اصالت.</p>
+        <a class="btn btn-primary btn-sm btn-block" href="{{ url_for('storefront.product_list') }}">مشاهده محصولات</a>
+      </div>
+    </aside>
+  </div>
+</div>
+{% endblock %}

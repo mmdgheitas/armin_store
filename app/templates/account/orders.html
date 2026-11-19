@@ -1,0 +1,42 @@
+{% extends "account/base.html" %}
+{% from "_macros.html" import pagination, empty_state %}
+{% block title %}سفارش‌های من — {{ store_name }}{% endblock %}
+{% block account_content %}
+<div class="page-header" style="padding-top:0">
+  <h1>سفارش‌های من</h1>
+  <p>پیگیری و مشاهده جزئیات سفارش‌ها</p>
+</div>
+
+<div class="chips mb-2">
+  <a class="chip {{ 'active' if not status }}" href="{{ url_for('account.orders') }}">همه</a>
+  {% for key, label in order_status_labels.items() %}
+    <a class="chip {{ 'active' if status == key }}" href="{{ url_for('account.orders', status=key) }}">{{ label }}</a>
+  {% endfor %}
+</div>
+
+{% if page.items %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>شماره</th><th>تاریخ</th><th>اقلام</th><th>مبلغ</th><th>پرداخت</th><th>وضعیت</th><th></th></tr></thead>
+      <tbody>
+        {% for order in page.items %}
+          <tr>
+            <td><strong>{{ order.order_number }}</strong></td>
+            <td>{{ order.created_at|jdatetime }}</td>
+            <td>{{ order.items_count|number }} عدد</td>
+            <td>{{ order.total_amount|money }}</td>
+            <td>
+              <span class="badge {{ 'badge-success' if order.payment_status == 'paid' else ('badge-danger' if order.payment_status == 'failed' else 'badge-warning') }}">{{ order.payment_status_label }}</span>
+            </td>
+            <td><span class="badge badge-muted">{{ order.status_label }}</span></td>
+            <td><a class="btn btn-outline btn-sm" href="{{ url_for('account.order_detail', order_number=order.order_number) }}">مشاهده</a></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {{ pagination(page) }}
+{% else %}
+  {{ empty_state('📦', 'سفارشی یافت نشد', 'پس از ثبت سفارش، جزئیات آن در این بخش نمایش داده می‌شود.') }}
+{% endif %}
+{% endblock %}

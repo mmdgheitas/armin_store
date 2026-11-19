@@ -1,0 +1,55 @@
+{% extends "admin/base.html" %}
+{% from "_macros.html" import pagination %}
+{% block title %}لاگ رویدادها{% endblock %}
+{% block page_title %}لاگ رویدادهای مدیریتی{% endblock %}
+{% block page_sub %}{{ page.total|number }} رویداد{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>لاگ رویدادها</h1><p>هر تغییر مهم در پنل با کاربر، زمان و شناسه IP ثبت می‌شود.</p></div>
+</div>
+<div class="panel">
+  <div class="panel-head">
+    <form method="get" class="filter-bar w-100">
+      <div class="field grow"><label>جستجو</label><input type="text" name="q" value="{{ q }}" placeholder="action یا نوع موجودیت، مثل order.status"></div>
+      <div class="field">
+        <label>مدیر</label>
+        <select name="admin">
+          <option value="">همه</option>
+          {% for admin in admins %}<option value="{{ admin.id }}" {{ 'selected' if admin_id == admin.id }}>{{ admin.full_name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field"><label>از</label><input type="date" name="from" value="{{ args.get('from', '') }}"></div>
+      <div class="field"><label>تا</label><input type="date" name="to" value="{{ args.get('to', '') }}"></div>
+      <div class="field" style="max-width:110px"><button class="btn btn-primary btn-block">فیلتر</button></div>
+    </form>
+  </div>
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>زمان</th><th>کاربر</th><th>رویداد</th><th>موجودیت</th><th>IP</th><th>جزئیات</th></tr></thead>
+      <tbody>
+        {% for log in page.items %}
+          <tr>
+            <td class="tiny">{{ log.created_at|jdatetime }}</td>
+            <td class="tiny">{{ log.admin.full_name if log.admin else 'سیستم' }}</td>
+            <td><span class="badge badge-info" dir="ltr">{{ log.action }}</span></td>
+            <td class="tiny">{{ log.entity_type or '—' }}{% if log.entity_id %} #{{ log.entity_id }}{% endif %}</td>
+            <td class="tiny" dir="ltr">{{ log.ip_address or '—' }}</td>
+            <td class="tiny">
+              {% if log.new_data or log.old_data %}
+                <details>
+                  <summary style="cursor:pointer">نمایش</summary>
+                  {% if log.old_data %}<div class="mt-1"><strong>قبل:</strong> <code dir="ltr" style="word-break:break-all">{{ log.old_data }}</code></div>{% endif %}
+                  {% if log.new_data %}<div class="mt-1"><strong>بعد:</strong> <code dir="ltr" style="word-break:break-all">{{ log.new_data }}</code></div>{% endif %}
+                </details>
+              {% else %}—{% endif %}
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6"><div class="empty"><p>رویدادی ثبت نشده است.</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {{ pagination(page) }}
+</div>
+{% endblock %}

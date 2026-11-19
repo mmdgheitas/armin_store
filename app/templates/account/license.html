@@ -1,0 +1,15 @@
+{% extends "account/base.html" %}
+{% block title %}لایسنس {{ item.product_name_snapshot }} — {{ store_name }}{% endblock %}
+{% block account_content %}
+<div class="page-header" style="padding-top:0"><h1>کد لایسنس</h1></div>
+<div class="card">
+  <h3>{{ item.product_name_snapshot }}</h3>
+  <p class="text-muted small">این کد مخصوص شماست؛ آن را در اختیار دیگران قرار ندهید.</p>
+  <div class="code-block" id="license-code" style="font-size:1.1rem;text-align:center">{{ token.issued_license or 'در حال صدور…' }}</div>
+  <div class="d-flex gap-1 mt-2">
+    {% if token.issued_license %}<button type="button" class="btn btn-outline btn-sm" data-copy="{{ token.issued_license }}">کپی</button>{% endif %}
+    <a class="btn btn-ghost btn-sm" href="{{ url_for('account.downloads') }}">بازگشت به دانلودها</a>
+    <a class="btn btn-ghost btn-sm" href="{{ url_for('account.order_detail', order_number=order.order_number) }}">سفارش {{ order.order_number }}</a>
+  </div>
+</div>
+{% endblock %}

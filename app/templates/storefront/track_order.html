@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}پیگیری سفارش — {{ store_name }}{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="page-header"><h1>پیگیری سفارش</h1><p>شماره سفارش و شماره موبایل ثبت‌شده را وارد کنید.</p></div>
+
+  <div class="auth-wrap" style="padding-top:0">
+    <div class="auth-card" style="max-width:520px">
+      {% if needs_code %}
+        <h2 style="font-size:1.1rem">تأیید کد پیامکی</h2>
+        <p class="small text-muted">کد ارسال‌شده به شماره ثبت‌شده در سفارش را وارد کنید.</p>
+        <form method="post" action="{{ url_for('storefront.track_order_verify') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="otp-inputs" data-otp-group>
+            {% for i in range(settings.otp_length) %}
+              <input type="text" inputmode="numeric" maxlength="1" aria-label="رقم {{ i + 1 }}" {{ 'autofocus' if loop.first }}>
+            {% endfor %}
+          </div>
+          <button type="submit" class="btn btn-primary btn-block">تأیید و مشاهده سفارش</button>
+        </form>
+      {% else %}
+        <form method="post" action="{{ url_for('storefront.track_order') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="field">
+            <label for="order_number">شماره سفارش <span class="req">*</span></label>
+            <input type="text" id="order_number" name="order_number" value="{{ order_number or '' }}" required placeholder="AR-XXXX-XXXX" dir="ltr">
+          </div>
+          <div class="field mt-2">
+            <label for="mobile">شماره موبایل <span class="req">*</span></label>
+            <input type="tel" id="mobile" name="mobile" required pattern="09[0-9]{9}" maxlength="11" placeholder="09121234567" dir="ltr">
+          </div>
+          <button type="submit" class="btn btn-primary btn-block mt-3">مشاهده سفارش</button>
+        </form>
+        <div class="auth-footer">
+          {% if current_user %}می‌توانید از <a href="{{ url_for('account.orders') }}">حساب کاربری</a> نیز سفارش‌ها را ببینید.{% else %}حساب دارید؟ <a href="{{ url_for('auth.login') }}">وارد شوید</a>{% endif %}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

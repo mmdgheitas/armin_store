@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}در انتظار پرداخت — {{ store_name }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="result-card">
+    <div class="result-icon pending">⏳</div>
+    <h1>پرداخت در انتظار تأیید</h1>
+    <p>{{ message }}</p>
+    <div class="result-details">
+      <div><span>شماره سفارش</span><strong>{{ order.order_number }}</strong></div>
+      <div><span>مبلغ</span><strong>{{ order.total_amount|money }}</strong></div>
+    </div>
+    <p class="tiny text-muted mt-2">اگر مبلغ از حساب شما کسر شده است، نتیجه پرداخت به‌صورت خودکار از درگاه استعلام می‌شود. چند دقیقه بعد وضعیت سفارش را بررسی کنید.</p>
+    <div class="result-actions">
+      <a class="btn btn-primary" href="{{ url_for('storefront.order_view', order_number=order.order_number) }}">بررسی وضعیت سفارش</a>
+      <a class="btn btn-outline" href="{{ url_for('storefront.contact') }}">تماس با پشتیبانی</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

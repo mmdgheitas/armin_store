@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>در حال به‌روزرسانی — {{ store_name }}</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+<body style="background:#0f172a">
+  <main class="container" style="display:grid;place-items:center;min-height:100vh;padding:20px">
+    <div class="result-card" style="max-width:560px;margin:0">
+      <div class="result-icon pending">🛠️</div>
+      <h1>فروشگاه در حال به‌روزرسانی است</h1>
+      <p>{{ message or 'به‌زودی باز می‌گردیم. از شکیبایی شما سپاسگزاریم.' }}</p>
+      {% if settings.contact_phone %}<p class="small">تماس: <span dir="ltr">{{ settings.contact_phone }}</span></p>{% endif %}
+      <div class="result-actions">
+        <a class="btn btn-outline" href="{{ url_for('auth.login') }}">ورود مدیران</a>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

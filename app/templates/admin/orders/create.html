@@ -1,0 +1,92 @@
+{% extends "admin/base.html" %}
+{% block title %}ثبت سفارش دستی{% endblock %}
+{% block page_title %}ثبت سفارش دستی{% endblock %}
+{% block page_sub %}برای سفارش‌های تلفنی یا حضوری{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>ثبت سفارش دستی</h1><p>مشتری مهمان ثبت می‌شود؛ در صورت پرداخت آفلاین، سفارش بلافاصله پرداخت‌شده خواهد بود.</p></div>
+  <div class="page-actions"><a class="btn btn-outline" href="{{ url_for('admin.orders') }}">بازگشت</a></div>
+</div>
+
+<form method="post" action="{{ url_for('admin.order_create') }}" data-dynamic-rows>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div class="panel">
+    <div class="panel-head"><h2>اقلام سفارش</h2><button type="button" class="btn btn-outline btn-sm" data-add-row>➕ افزودن کالا</button></div>
+    <div class="panel-body">
+      <div class="table-wrap">
+        <table class="data" style="min-width:560px">
+          <thead><tr><th style="width:70%">کالا</th><th>تعداد</th><th></th></tr></thead>
+          <tbody data-rows-container>
+            <tr data-row>
+              <td>
+                <select name="variant_id[]" style="width:100%">
+                  <option value="">— انتخاب کالا —</option>
+                  {% for variant, product in variants %}
+                    <option value="{{ variant.id }}">{{ product.name }} — {{ variant.label_with_names }} ({{ variant.sku }}) — {{ variant.effective_price|money }}</option>
+                  {% endfor %}
+                </select>
+              </td>
+              <td><input type="number" name="quantity[]" value="1" min="1" style="width:90px"></td>
+              <td><button type="button" class="btn btn-danger btn-sm" data-remove-row>✕</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <template data-row-template>
+        <tr data-row>
+          <td>
+            <select name="variant_id[]" style="width:100%">
+              <option value="">— انتخاب کالا —</option>
+              {% for variant, product in variants %}
+                <option value="{{ variant.id }}">{{ product.name }} — {{ variant.label_with_names }} ({{ variant.sku }}) — {{ variant.effective_price|money }}</option>
+              {% endfor %}
+            </select>
+          </td>
+          <td><input type="number" name="quantity[]" value="1" min="1" style="width:90px"></td>
+          <td><button type="button" class="btn btn-danger btn-sm" data-remove-row>✕</button></td>
+        </tr>
+      </template>
+      <p class="tiny muted mt-1">موجودی کالاها به‌صورت خودکار رزرو می‌شود.</p>
+    </div>
+  </div>
+
+  <div class="dashboard-grid">
+    <div class="panel">
+      <div class="panel-head"><h2>اطلاعات مشتری</h2></div>
+      <div class="panel-body">
+        <div class="form-grid">
+          <div class="field"><label for="customer_name">نام مشتری <span class="req">*</span></label><input type="text" id="customer_name" name="customer_name" value="{{ form.get('customer_name', '') }}" required maxlength="150"></div>
+          <div class="field"><label for="mobile">موبایل <span class="req">*</span></label><input type="tel" id="mobile" name="mobile" value="{{ form.get('mobile', '') }}" required pattern="09[0-9]{9}" maxlength="11" dir="ltr"></div>
+          <div class="field"><label for="email">ایمیل</label><input type="email" id="email" name="email" value="{{ form.get('email', '') }}" dir="ltr" maxlength="190"></div>
+          <div class="field">
+            <label for="province">استان</label>
+            <select id="province" name="province">
+              <option value="">—</option>
+              {% for province in provinces %}<option value="{{ province }}" {{ 'selected' if form.get('province') == province }}>{{ province }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="field"><label for="city">شهر</label><input type="text" id="city" name="city" value="{{ form.get('city', '') }}" maxlength="80"></div>
+          <div class="field"><label for="postal_code">کد پستی</label><input type="text" id="postal_code" name="postal_code" value="{{ form.get('postal_code', '') }}" maxlength="10" dir="ltr"></div>
+          <div class="field full"><label for="address">آدرس</label><textarea id="address" name="address" style="min-height:70px">{{ form.get('address', '') }}</textarea></div>
+          <div class="field full"><label for="note">توضیحات سفارش</label><textarea id="note" name="note" style="min-height:60px">{{ form.get('note', '') }}</textarea></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2>پرداخت و ارسال</h2></div>
+      <div class="panel-body">
+        <div class="field"><label for="shipping_cost">هزینه ارسال (تومان)</label><input type="number" id="shipping_cost" name="shipping_cost" value="{{ form.get('shipping_cost', 0) }}" min="0"></div>
+        <div class="field mt-2">
+          <label>روش پرداخت</label>
+          <label class="radio-card"><input type="radio" name="payment_mode" value="unpaid" {{ 'checked' if form.get('payment_mode', 'unpaid') == 'unpaid' }}><span><strong>پرداخت آنلاین توسط مشتری</strong><span>سفارش در انتظار پرداخت می‌ماند.</span></span></label>
+          <label class="radio-card"><input type="radio" name="payment_mode" value="offline" {{ 'checked' if form.get('payment_mode') == 'offline' }}><span><strong>پرداخت آفلاین تأییدشده</strong><span>کارت‌به‌کارت یا نقدی — سفارش پرداخت‌شده ثبت می‌شود.</span></span></label>
+        </div>
+        <div class="field mt-2"><label for="reference">کد/مرجع پرداخت آفلاین</label><input type="text" id="reference" name="reference" value="{{ form.get('reference', '') }}" dir="ltr" maxlength="120"></div>
+        <button type="submit" class="btn btn-primary btn-block mt-3">ثبت سفارش</button>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}

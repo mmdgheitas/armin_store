@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="account-layout">
+    <aside class="account-sidebar">
+      <div class="account-user">
+        <span class="avatar-circle">{{ current_user.full_name[:1] }}</span>
+        <div>
+          <strong>{{ current_user.full_name }}</strong>
+          <span dir="ltr">{{ current_user.mobile }}</span>
+        </div>
+      </div>
+      <ul class="account-nav">
+        {% set ep = request.endpoint %}
+        <li><a href="{{ url_for('account.dashboard') }}" class="{{ 'active' if ep == 'account.dashboard' }}">🏠 داشبورد</a></li>
+        <li><a href="{{ url_for('account.orders') }}" class="{{ 'active' if ep in ['account.orders', 'account.order_detail'] }}">📦 سفارش‌های من</a></li>
+        <li><a href="{{ url_for('account.downloads') }}" class="{{ 'active' if ep in ['account.downloads', 'account.license'] }}">⬇️ دانلودها</a></li>
+        <li><a href="{{ url_for('account.addresses') }}" class="{{ 'active' if ep == 'account.addresses' }}">📍 آدرس‌ها</a></li>
+        <li><a href="{{ url_for('account.reviews') }}" class="{{ 'active' if ep == 'account.reviews' }}">💬 نظرات من</a></li>
+        {% if settings.customer_video_enabled %}
+          <li><a href="{{ url_for('account.videos') }}" class="{{ 'active' if ep == 'account.videos' }}">🎬 ویدئوهای من</a></li>
+        {% endif %}
+        <li><a href="{{ url_for('account.tickets') }}" class="{{ 'active' if ep in ['account.tickets', 'account.ticket_detail'] }}">🎫 تیکت‌های پشتیبانی</a></li>
+        <li><a href="{{ url_for('storefront.wishlist') }}">❤️ علاقه‌مندی‌ها</a></li>
+        <li><a href="{{ url_for('account.notifications') }}" class="{{ 'active' if ep == 'account.notifications' }}">🔔 اعلان‌ها</a></li>
+        <li><a href="{{ url_for('account.profile') }}" class="{{ 'active' if ep == 'account.profile' }}">⚙️ اطلاعات حساب</a></li>
+        <li><a href="{{ url_for('account.password') }}" class="{{ 'active' if ep == 'account.password' }}">🔒 تغییر رمز عبور</a></li>
+        <li>
+          <form method="post" action="{{ url_for('auth.logout') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="account-nav-link">🚪 خروج از حساب</button>
+          </form>
+        </li>
+      </ul>
+    </aside>
+    <div>
+      {% block account_content %}{% endblock %}
+    </div>
+  </div>
+</div>
+{% endblock %}

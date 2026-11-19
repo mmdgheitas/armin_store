@@ -1,0 +1,13 @@
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="flash-wrap">
+      {% for category, message in messages %}
+        {% set cls = {'error': 'error', 'danger': 'error', 'success': 'success', 'warning': 'warning'}.get(category, 'info') %}
+        <div class="alert alert-{{ cls }}" role="alert">
+          <span>{{ message }}</span>
+          <button type="button" data-dismiss class="cart-item-remove" style="margin-right:auto" aria-label="بستن">✕</button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}

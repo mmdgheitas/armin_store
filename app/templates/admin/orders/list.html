@@ -1,0 +1,79 @@
+{% extends "admin/base.html" %}
+{% from "_macros.html" import pagination, status_badge %}
+{% block title %}سفارش‌ها{% endblock %}
+{% block page_title %}سفارش‌ها{% endblock %}
+{% block page_sub %}{{ page.total|number }} سفارش{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>مدیریت سفارش‌ها</h1><p>پیگیری، تغییر وضعیت و صدور فاکتور</p></div>
+  <div class="page-actions">
+    <a class="btn btn-outline" href="{{ url_for('admin.orders_export', fmt='excel') }}{% if request.query_string %}?{{ request.query_string.decode() }}{% endif %}">📊 Excel</a>
+    <a class="btn btn-outline" href="{{ url_for('admin.orders_export', fmt='csv') }}{% if request.query_string %}?{{ request.query_string.decode() }}{% endif %}">CSV</a>
+    <a class="btn btn-outline" href="{{ url_for('admin.orders_export', fmt='pdf') }}{% if request.query_string %}?{{ request.query_string.decode() }}{% endif %}">PDF</a>
+    <a class="btn btn-primary" href="{{ url_for('admin.order_create') }}">➕ ثبت سفارش دستی</a>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-head">
+    <form method="get" class="filter-bar w-100">
+      <div class="field grow"><label>جستجو</label><input type="text" name="q" value="{{ args.get('q', '') }}" placeholder="شماره سفارش، نام، موبایل، رهگیری"></div>
+      <div class="field">
+        <label>وضعیت</label>
+        <select name="status">
+          <option value="">همه</option>
+          {% for value, label in statuses %}<option value="{{ value }}" {{ 'selected' if args.get('status') == value }}>{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label>پرداخت</label>
+        <select name="payment_status">
+          <option value="">همه</option>
+          {% for value, label in payment_statuses %}<option value="{{ value }}" {{ 'selected' if args.get('payment_status') == value }}>{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label>ارسال</label>
+        <select name="shipping_status">
+          <option value="">همه</option>
+          {% for value, label in shipping_statuses %}<option value="{{ value }}" {{ 'selected' if args.get('shipping_status') == value }}>{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field"><label>از تاریخ</label><input type="date" name="from" value="{{ args.get('from', '') }}"></div>
+      <div class="field"><label>تا تاریخ</label><input type="date" name="to" value="{{ args.get('to', '') }}"></div>
+      <div class="field" style="max-width:110px"><button type="submit" class="btn btn-primary btn-block">فیلتر</button></div>
+      <div class="field" style="max-width:100px"><a class="btn btn-outline btn-block" href="{{ url_for('admin.orders') }}">پاک‌سازی</a></div>
+    </form>
+  </div>
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>شماره</th><th>تاریخ</th><th>مشتری</th><th>مبلغ</th><th>پرداخت</th><th>وضعیت</th><th>ارسال</th><th>رهگیری</th><th>عملیات</th></tr></thead>
+      <tbody>
+        {% for order in page.items %}
+          <tr>
+            <td><a href="{{ url_for('admin.order_detail', order_number=order.order_number) }}"><strong>{{ order.order_number }}</strong></a>
+              {% if order.is_guest %}<span class="badge badge-muted">مهمان</span>{% endif %}
+            </td>
+            <td class="tiny">{{ order.created_at|jdatetime }}</td>
+            <td class="small">{{ order.customer_name }}<div class="tiny muted" dir="ltr">{{ order.customer_mobile }}</div></td>
+            <td class="num">{{ order.total_amount|money }}</td>
+            <td>{{ status_badge(order.payment_status, order.payment_status_label) }}</td>
+            <td>{{ status_badge(order.status, order.status_label) }}</td>
+            <td>{{ status_badge(order.shipping_status, order.shipping_status_label) }}</td>
+            <td class="tiny" dir="ltr">{{ order.tracking_code or '—' }}</td>
+            <td>
+              <div class="actions">
+                <a class="btn btn-outline btn-sm" href="{{ url_for('admin.order_detail', order_number=order.order_number) }}">جزئیات</a>
+                <a class="btn btn-ghost btn-sm" href="{{ url_for('admin.order_invoice', order_number=order.order_number) }}" target="_blank">فاکتور</a>
+              </div>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="9"><div class="empty"><div class="icon">🧾</div><p>سفارشی یافت نشد.</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {{ pagination(page) }}
+</div>
+{% endblock %}

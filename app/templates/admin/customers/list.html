@@ -1,0 +1,61 @@
+{% extends "admin/base.html" %}
+{% from "_macros.html" import pagination %}
+{% block title %}مشتریان{% endblock %}
+{% block page_title %}مشتریان{% endblock %}
+{% block page_sub %}{{ page.total|number }} کاربر{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>مدیریت مشتریان</h1><p>مشاهده پرونده، مسدودسازی و بازنشانی رمز</p></div>
+  <div class="page-actions"><a class="btn btn-primary" href="{{ url_for('admin.customer_create') }}">➕ مشتری جدید</a></div>
+</div>
+<div class="panel">
+  <div class="panel-head">
+    <form method="get" class="filter-bar w-100">
+      <div class="field grow"><label>جستجو</label><input type="text" name="q" value="{{ q }}" placeholder="نام، موبایل یا ایمیل"></div>
+      <div class="field">
+        <label>وضعیت</label>
+        <select name="status">
+          <option value="">همه</option>
+          <option value="active" {{ 'selected' if status == 'active' }}>فعال</option>
+          <option value="inactive" {{ 'selected' if status == 'inactive' }}>غیرفعال</option>
+        </select>
+      </div>
+      <div class="field" style="max-width:120px"><button type="submit" class="btn btn-primary btn-block">فیلتر</button></div>
+    </form>
+  </div>
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>نام</th><th>موبایل</th><th>ایمیل</th><th>سفارش پرداخت‌شده</th><th>مجموع خرید</th><th>عضویت</th><th>وضعیت</th><th>عملیات</th></tr></thead>
+      <tbody>
+        {% for user in page.items %}
+          {% set stats = order_stats.get(user.id, {'count': 0, 'total': 0}) %}
+          <tr>
+            <td><a href="{{ url_for('admin.customer_detail', user_id=user.id) }}"><strong>{{ user.full_name }}</strong></a>
+              {% if user.is_admin %}<span class="badge badge-primary">مدیر</span>{% endif %}
+              {% if user.must_change_password %}<span class="badge badge-warning">رمز موقت</span>{% endif %}
+            </td>
+            <td dir="ltr">{{ user.mobile }}</td>
+            <td class="tiny" dir="ltr">{{ user.email or '—' }}</td>
+            <td class="num">{{ stats.count|number }}</td>
+            <td class="num">{{ stats.total|money }}</td>
+            <td class="tiny">{{ user.created_at|jdate }}</td>
+            <td>{% if user.is_active %}<span class="badge badge-success">فعال</span>{% else %}<span class="badge badge-danger">غیرفعال</span>{% endif %}</td>
+            <td>
+              <div class="actions">
+                <a class="btn btn-outline btn-sm" href="{{ url_for('admin.customer_detail', user_id=user.id) }}">پرونده</a>
+                <form method="post" action="{{ url_for('admin.customer_toggle', user_id=user.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-ghost btn-sm" data-confirm="وضعیت حساب تغییر کند؟">{{ 'مسدود کن' if user.is_active else 'فعال کن' }}</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="8"><div class="empty"><p>مشتری‌ای یافت نشد.</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {{ pagination(page) }}
+</div>
+{% endblock %}

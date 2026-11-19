@@ -1,0 +1,59 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ 'ویرایش مقاله' if post else 'مقاله جدید' }}{% endblock %}
+{% block page_title %}{{ 'ویرایش مقاله' if post else 'مقاله جدید' }}{% endblock %}
+{% block page_sub %}{{ post.title if post else 'محتوای وبلاگ' }}{% endblock %}
+{% block content %}
+{% set data = form if form is defined and form else {} %}
+<div class="page-head">
+  <div><h1>{{ 'ویرایش مقاله' if post else 'مقاله جدید' }}</h1><p>محتوای HTML مجاز است و قبل از ذخیره پاک‌سازی امنیتی می‌شود.</p></div>
+  <div class="page-actions"><a class="btn btn-outline" href="{{ url_for('admin.blog_posts') }}">بازگشت</a></div>
+</div>
+<form method="post" enctype="multipart/form-data" action="{{ url_for('admin.blog_save', post_id=post.id) if post else url_for('admin.blog_save') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="dashboard-grid">
+    <div class="panel">
+      <div class="panel-head"><h2>محتوای مقاله</h2></div>
+      <div class="panel-body">
+        <div class="field"><label for="title">عنوان <span class="req">*</span></label><input type="text" id="title" name="title" value="{{ data.get('title', post.title if post else '') }}" required maxlength="220"></div>
+        <div class="field mt-1"><label for="slug">نامک (اختیاری)</label><input type="text" id="slug" name="slug" value="{{ data.get('slug', post.slug if post else '') }}" dir="ltr" maxlength="200" placeholder="خودکار از عنوان ساخته می‌شود"></div>
+        <div class="field mt-1"><label for="excerpt">خلاصه</label><textarea id="excerpt" name="excerpt" maxlength="400" style="min-height:70px">{{ data.get('excerpt', post.excerpt if post else '') }}</textarea></div>
+        <div class="field mt-1"><label for="content">متن مقاله <span class="req">*</span></label><textarea id="content" name="content" required style="min-height:340px" dir="rtl">{{ data.get('content', post.content if post else '') }}</textarea></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h2>انتشار</h2></div>
+      <div class="panel-body">
+        <div class="field">
+          <label for="status">وضعیت</label>
+          <select id="status" name="status">
+            {% set current_status = data.get('status', post.status if post else 'draft') %}
+            <option value="draft" {{ 'selected' if current_status == 'draft' }}>پیش‌نویس</option>
+            <option value="published" {{ 'selected' if current_status == 'published' }}>منتشرشده</option>
+          </select>
+        </div>
+        <div class="field mt-1"><label for="published_at">تاریخ انتشار</label><input type="date" id="published_at" name="published_at" value="{{ post.published_at.date().isoformat() if post and post.published_at else '' }}"></div>
+        <div class="field mt-1">
+          <label for="category_id">دسته‌بندی</label>
+          <select id="category_id" name="category_id">
+            <option value="">—</option>
+            {% for category in categories %}<option value="{{ category.id }}" {{ 'selected' if (post and post.category_id == category.id) or data.get('category_id')|string == category.id|string }}>{{ category.name }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field mt-1"><label for="new_category">دسته جدید</label><input type="text" id="new_category" name="new_category" maxlength="120" placeholder="در صورت نیاز"></div>
+        <div class="field mt-1"><label for="cover">تصویر کاور</label><input type="file" id="cover" name="cover" accept="image/*">
+          {% if post and post.cover_image %}<img src="{{ media_url(post.cover_image) }}" alt="" style="width:100%;border-radius:10px;margin-top:8px">{% endif %}
+        </div>
+      </div>
+      <div class="panel-head"><h2>سئو</h2></div>
+      <div class="panel-body">
+        <div class="field"><label for="seo_title">عنوان سئو</label><input type="text" id="seo_title" name="seo_title" value="{{ data.get('seo_title', post.seo_title if post else '') }}" maxlength="200"></div>
+        <div class="field mt-1"><label for="seo_description">توضیح متا</label><textarea id="seo_description" name="seo_description" maxlength="300" style="min-height:70px">{{ data.get('seo_description', post.seo_description if post else '') }}</textarea></div>
+      </div>
+      <div class="panel-body" style="border-top:1px solid var(--a-border)">
+        <button type="submit" class="btn btn-primary btn-block">💾 ذخیره مقاله</button>
+        <a class="btn btn-outline btn-block mt-1" href="{{ url_for('admin.blog_posts') }}">انصراف</a>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends "admin/base.html" %}
+{% block title %}صفحات{% endblock %}
+{% block page_title %}صفحات ثابت{% endblock %}
+{% block page_sub %}{{ pages|length }} صفحه{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>صفحات ثابت</h1><p>صفحات اطلاعاتی مثل «درباره ما» و «قوانین»</p></div>
+  <div class="page-actions"><a class="btn btn-primary" href="{{ url_for('admin.page_save') }}">➕ صفحه جدید</a></div>
+</div>
+<div class="panel">
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>عنوان</th><th>نامک</th><th>فوتر</th><th>ترتیب</th><th>وضعیت</th><th>به‌روزرسانی</th><th>عملیات</th></tr></thead>
+      <tbody>
+        {% for item in pages %}
+          <tr>
+            <td><strong>{{ item.title }}</strong></td>
+            <td class="tiny" dir="ltr">/page/{{ item.slug }}</td>
+            <td>{% if item.show_in_footer %}<span class="badge badge-info">نمایش</span>{% else %}<span class="badge badge-muted">—</span>{% endif %}</td>
+            <td class="num">{{ item.sort_order }}</td>
+            <td>{% if item.is_published %}<span class="badge badge-success">منتشرشده</span>{% else %}<span class="badge badge-muted">پیش‌نویس</span>{% endif %}</td>
+            <td class="tiny">{{ item.updated_at|jdatetime }}</td>
+            <td>
+              <div class="actions">
+                {% if item.is_published %}<a class="btn btn-outline btn-sm" href="{{ url_for('storefront.static_page', slug=item.slug) }}" target="_blank">مشاهده</a>{% endif %}
+                <a class="btn btn-outline btn-sm" href="{{ url_for('admin.page_save', page_id=item.id) }}">ویرایش</a>
+                <form method="post" action="{{ url_for('admin.page_toggle', page_id=item.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-ghost btn-sm">{{ 'پیش‌نویس' if item.is_published else 'انتشار' }}</button>
+                </form>
+                <form method="post" action="{{ url_for('admin.page_delete', page_id=item.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-danger btn-sm" data-confirm="صفحه حذف شود؟">حذف</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="7"><div class="empty"><p>صفحه‌ای ثبت نشده است.</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

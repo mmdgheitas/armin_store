@@ -1,0 +1,66 @@
+{% extends "account/base.html" %}
+{% from "_macros.html" import pagination, empty_state %}
+{% block title %}تیکت‌های پشتیبانی — {{ store_name }}{% endblock %}
+{% block account_content %}
+<div class="page-header" style="padding-top:0"><h1>تیکت‌های پشتیبانی</h1><p>{{ settings.support_welcome_text }}</p></div>
+
+<div class="card mb-3">
+  <div class="card-head"><h3>ثبت تیکت جدید</h3></div>
+  <form method="post" action="{{ url_for('account.tickets') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-grid">
+      <div class="field full">
+        <label for="subject">موضوع <span class="req">*</span></label>
+        <input type="text" id="subject" name="subject" required minlength="3" maxlength="200">
+      </div>
+      <div class="field">
+        <label for="department">بخش</label>
+        <select id="department" name="department">
+          <option value="support">پشتیبانی فنی</option>
+          <option value="order">پیگیری سفارش</option>
+          <option value="sales">فروش</option>
+          <option value="other">سایر</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="priority">اولویت</label>
+        <select id="priority" name="priority">
+          <option value="normal">عادی</option>
+          <option value="low">کم</option>
+          <option value="high">زیاد</option>
+          <option value="urgent">فوری</option>
+        </select>
+      </div>
+      <div class="field full">
+        <label for="message">متن پیام <span class="req">*</span></label>
+        <textarea id="message" name="message" required minlength="10" maxlength="5000"></textarea>
+      </div>
+    </div>
+    <button type="submit" class="btn btn-primary mt-2">ارسال تیکت</button>
+  </form>
+</div>
+
+{% if page.items %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>شماره</th><th>موضوع</th><th>بخش</th><th>اولویت</th><th>وضعیت</th><th>آخرین به‌روزرسانی</th><th></th></tr></thead>
+      <tbody>
+        {% for ticket in page.items %}
+          <tr>
+            <td>{{ ticket.ticket_number }}</td>
+            <td><a href="{{ url_for('account.ticket_detail', ticket_id=ticket.id) }}">{{ ticket.subject }}</a></td>
+            <td class="tiny">{{ {'sales': 'فروش', 'support': 'پشتیبانی', 'order': 'سفارش', 'other': 'سایر'}.get(ticket.department, ticket.department) }}</td>
+            <td><span class="badge {{ 'badge-danger' if ticket.priority in ['high', 'urgent'] else 'badge-muted' }}">{{ {'low': 'کم', 'normal': 'عادی', 'high': 'زیاد', 'urgent': 'فوری'}.get(ticket.priority, ticket.priority) }}</span></td>
+            <td><span class="badge {{ 'badge-success' if ticket.status == 'answered' else ('badge-muted' if ticket.status == 'closed' else 'badge-warning') }}">{{ ticket.status_label }}</span></td>
+            <td class="tiny">{{ ticket.updated_at|jdatetime }}</td>
+            <td><a class="btn btn-outline btn-sm" href="{{ url_for('account.ticket_detail', ticket_id=ticket.id) }}">مشاهده</a></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {{ pagination(page) }}
+{% else %}
+  {{ empty_state('🎫', 'تیکتی ثبت نشده است', 'در صورت بروز مشکل، تیکت جدید ثبت کنید.') }}
+{% endif %}
+{% endblock %}

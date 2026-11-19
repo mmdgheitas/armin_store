@@ -1,0 +1,98 @@
+{% extends "admin/base.html" %}
+{% block title %}گزارش سود{% endblock %}
+{% block page_title %}گزارش سود و زیان{% endblock %}
+{% block page_sub %}{{ context.period_label }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>گزارش سود و زیان</h1><p>{{ context.period_label }}</p></div>
+  <div class="page-actions">
+    <a class="btn btn-outline" href="{{ url_for('admin.reports', **request.args) }}">گزارش فروش</a>
+    <a class="btn btn-primary" href="{{ url_for('admin.reports_export', kind='profit', fmt='excel', **request.args) }}">⬇️ Excel</a>
+    <a class="btn btn-outline" href="{{ url_for('admin.reports_export', kind='profit', fmt='pdf', **request.args) }}">PDF</a>
+  </div>
+</div>
+
+<form method="get" class="filter-bar panel" style="padding:14px 18px">
+  <div class="field"><label>از تاریخ</label><input type="date" name="from" value="{{ context.from_value }}"></div>
+  <div class="field"><label>تا تاریخ</label><input type="date" name="to" value="{{ context.to_value }}"></div>
+  <div class="field" style="max-width:130px"><button class="btn btn-primary btn-block">اعمال</button></div>
+</form>
+
+<h2 class="section-title">صورت سود و زیان</h2>
+<div class="panel">
+  <div class="table-wrap">
+    <table class="data">
+      <tbody>
+        <tr><td>فروش کالا (پس از تخفیف)</td><td class="num">{{ summary.net_revenue|money }}</td></tr>
+        <tr><td class="text-danger">منهای بهای تمام‌شده کالا (COGS)</td><td class="num text-danger">({{ summary.cogs|money }})</td></tr>
+        <tr class="row-total"><td><strong>سود ناخالص</strong></td><td class="num"><strong>{{ summary.gross_profit|money }}</strong></td></tr>
+        <tr><td class="text-danger">منهای هزینه‌های عملیاتی</td><td class="num text-danger">({{ summary.expenses|money }})</td></tr>
+        <tr><td class="text-danger">منهای مرجوعی و بازپرداخت</td><td class="num text-danger">({{ summary.refunds|money }})</td></tr>
+        <tr class="row-total"><td><strong>سود عملیاتی</strong></td><td class="num"><strong>{{ summary.operating_profit|money }}</strong></td></tr>
+        <tr><td>درآمد ارسال</td><td class="num">{{ summary.shipping|money }}</td></tr>
+        <tr><td>مالیات دریافتی</td><td class="num">{{ summary.tax|money }}</td></tr>
+        <tr><td>تعداد سفارش / اقلام</td><td class="num">{{ summary.orders_count|number }} / {{ summary.units|number }}</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="dashboard-grid">
+  <div class="panel">
+    <div class="panel-head"><h2>سود بر اساس دسته‌بندی</h2></div>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>دسته‌بندی</th><th>فروش</th><th>سود</th><th>سهم</th></tr></thead>
+        <tbody>
+          {% for row in by_category %}
+            <tr>
+              <td>{{ row.name }}</td>
+              <td class="num">{{ row.revenue|money }}</td>
+              <td class="num text-success">{{ row.profit|money }}</td>
+              <td class="num">{{ ((row.revenue * 100 / summary.net_revenue)|round(1)) if summary.net_revenue else 0 }}٪</td>
+            </tr>
+          {% else %}
+            <tr><td colspan="4"><div class="empty"><p>داده‌ای نیست.</p></div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-head"><h2>هزینه‌ها به تفکیک دسته</h2><a class="btn btn-outline btn-sm" href="{{ url_for('admin.expenses') }}">مدیریت هزینه‌ها</a></div>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>دسته</th><th>مبلغ</th></tr></thead>
+        <tbody>
+          {% for row in expense_breakdown %}
+            <tr><td>{{ row.name }}</td><td class="num">{{ row.amount|money }}</td></tr>
+          {% else %}
+            <tr><td colspan="2"><div class="empty"><p>هزینه‌ای ثبت نشده است.</p></div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-head"><h2>سود محصولات</h2></div>
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>محصول</th><th>تعداد فروش</th><th>درآمد</th><th>سود</th></tr></thead>
+      <tbody>
+        {% for row in top_products %}
+          <tr>
+            <td>{% if row.product_id %}<a href="{{ url_for('admin.product_edit', product_id=row.product_id) }}">{{ row.name }}</a>{% else %}{{ row.name }}{% endif %}</td>
+            <td class="num">{{ row.quantity|number }}</td>
+            <td class="num">{{ row.revenue|money }}</td>
+            <td class="num text-success">{{ row.profit|money }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="4"><div class="empty"><p>داده‌ای نیست.</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

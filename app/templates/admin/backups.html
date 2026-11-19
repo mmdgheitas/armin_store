@@ -1,0 +1,109 @@
+{% extends "admin/base.html" %}
+{% block title %}پشتیبان‌گیری{% endblock %}
+{% block page_title %}پشتیبان‌گیری{% endblock %}
+{% block page_sub %}{{ backups|length }} فایل بکاپ{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>پشتیبان‌گیری و بازیابی</h1><p>بکاپ از دیتابیس SQLite با API رسمی Backup و اعتبارسنجی قبل از بازیابی</p></div>
+  <div class="page-actions">
+    <span class="badge badge-muted">حجم دیتابیس: {{ db_size|filesize }}</span>
+    <span class="badge badge-muted">نگهداری خودکار: {{ keep }} فایل</span>
+  </div>
+</div>
+
+<div class="alert alert-warning">
+  بازیابی، داده‌های فعلی را با فایل بکاپ جایگزین می‌کند و پس از آن برنامه باید دوباره بارگذاری شود. پیش از بازیابی، از وضعیت فعلی بکاپ بگیرید.
+</div>
+
+<div class="dashboard-grid">
+  <div class="panel">
+    <div class="panel-head"><h2>ساخت بکاپ</h2></div>
+    <div class="panel-body">
+      <form method="post" action="{{ url_for('admin.backup_create') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="field"><label for="note">توضیح بکاپ</label><input type="text" id="note" name="note" maxlength="300" value="بکاپ دستی"></div>
+        <button type="submit" class="btn btn-primary btn-block mt-2">🗄️ ساخت بکاپ</button>
+      </form>
+      <hr class="mt-2">
+      <form method="post" action="{{ url_for('admin.backup_upload') }}" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="field"><label for="file">بارگذاری فایل بکاپ (db.)</label><input type="file" id="file" name="file" accept=".db" required></div>
+        <button type="submit" class="btn btn-outline btn-block mt-2">⬆️ بررسی و افزودن فایل</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head"><h2>راهنمای پشتیبان‌گیری</h2></div>
+    <div class="panel-body small">
+      <ul class="list-disc">
+        <li>بکاپ‌ها در پوشه <code dir="ltr">backups/</code> خارج از مسیر وب ذخیره می‌شوند.</li>
+        <li>برای بازیابی، فایل باید دیتابیس معتبر با ساختار Armin Store باشد؛ بررسی خودکار انجام می‌شود.</li>
+        <li>بکاپ‌گیری خودکار را می‌توانید با cron روزانه روی دستور <code dir="ltr">flask backup-create</code> تنظیم کنید.</li>
+        <li>قبل از هر به‌روزرسانی یا مهاجرت، بکاپ دستی بگیرید.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-head"><h2>فایل‌های بکاپ</h2></div>
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>فایل</th><th>حجم</th><th>زمان</th><th>توضیح</th><th>وضعیت</th><th>عملیات</th></tr></thead>
+      <tbody>
+        {% for item in backups %}
+          <tr>
+            <td class="tiny" dir="ltr">{{ item.filename }}</td>
+            <td class="num">{{ item.size|filesize }}</td>
+            <td class="tiny">{{ item.created_at|jdatetime if item.created_at else '—' }}</td>
+            <td class="tiny">{{ item.note or '—' }}</td>
+            <td>{% if item.status == 'success' %}<span class="badge badge-success">سالم</span>{% else %}<span class="badge badge-danger">{{ item.status }}</span>{% endif %}</td>
+            <td>
+              <div class="actions">
+                <a class="btn btn-outline btn-sm" href="{{ url_for('admin.backup_download', filename=item.filename) }}">دانلود</a>
+                <form method="post" action="{{ url_for('admin.backup_restore') }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input type="hidden" name="filename" value="{{ item.filename }}">
+                  <input type="hidden" name="confirm" value="1">
+                  <button class="btn btn-warning btn-sm" data-confirm="بازیابی این بکاپ، داده‌های فعلی را جایگزین می‌کند. مطمئن هستید؟">بازیابی</button>
+                </form>
+                <form method="post" action="{{ url_for('admin.backup_delete') }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input type="hidden" name="filename" value="{{ item.filename }}">
+                  <button class="btn btn-danger btn-sm" data-confirm="فایل بکاپ حذف شود؟">حذف</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6"><div class="empty"><p>هنوز بکاپی ساخته نشده است.</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-head"><h2>تاریخچه عملیات</h2></div>
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>زمان</th><th>فایل</th><th>نوع</th><th>کاربر</th><th>توضیح</th><th>وضعیت</th></tr></thead>
+      <tbody>
+        {% for log in logs %}
+          <tr>
+            <td class="tiny">{{ log.created_at|jdatetime }}</td>
+            <td class="tiny" dir="ltr">{{ log.filename }}</td>
+            <td class="tiny">{{ log.backup_type }}</td>
+            <td class="tiny">{{ log.admin.full_name if log.admin else '—' }}</td>
+            <td class="tiny">{{ log.note or '—' }}</td>
+            <td>{% if log.status == 'success' %}<span class="badge badge-success">موفق</span>{% else %}<span class="badge badge-danger">{{ log.status }}</span>{% endif %}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6"><div class="empty"><p>تاریخچه‌ای وجود ندارد.</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

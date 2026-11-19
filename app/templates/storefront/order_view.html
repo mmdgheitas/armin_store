@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status_badge %}
+{% block title %}سفارش {{ order.order_number }} — {{ store_name }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="page-header">
+    <div class="d-flex justify-between items-center flex-wrap gap-2">
+      <div>
+        <h1>سفارش {{ order.order_number }}</h1>
+        <p>ثبت‌شده در {{ order.created_at|jlong }}</p>
+      </div>
+      <div class="d-flex gap-1 flex-wrap">
+        {{ status_badge(order.status, order.status_label) }}
+        {{ status_badge(order.payment_status, order.payment_status_label) }}
+        {% if order.tracking_code %}<span class="badge badge-info">رهگیری: {{ order.tracking_code }}</span>{% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="checkout-layout">
+    <div>
+      <div class="card mb-2" style="padding:0">
+        {% for item in order.items %}
+          <div class="cart-item">
+            <div class="cart-thumb">
+              {% if item.product and item.product.image_url %}<img src="{{ item.product.image_url }}" alt="">{% else %}<div class="thumb-placeholder">🛍️</div>{% endif %}
+            </div>
+            <div class="cart-info">
+              <h4>{{ item.product_name_snapshot }}</h4>
+              <div class="meta">{{ item.variant_snapshot or '—' }} — {{ item.sku_snapshot }}</div>
+              <div class="meta">{{ item.unit_price|money }} × {{ item.quantity|number }}</div>
+              {% if item.is_digital and order.is_paid %}
+                <div class="mt-1"><a class="btn btn-outline btn-sm" href="{{ download_url(item) }}">دانلود فایل</a></div>
+              {% endif %}
+            </div>
+            <div class="cart-line-total">{{ item.total_price|money }}</div>
+          </div>
+        {% endfor %}
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h3>وضعیت سفارش</h3></div>
+        <ul style="list-style:none;padding:0;margin:0">
+          {% for row in order.status_history %}
+            <li style="border-bottom:1px solid var(--border);padding:8px 0">
+              <div class="d-flex justify-between gap-1 flex-wrap">
+                <span class="small">
+                  {% if row.field == 'status' %}{{ order_status_labels.get(row.to_value, row.to_value) }}
+                  {% elif row.field == 'payment_status' %}پرداخت: {{ payment_status_labels.get(row.to_value, row.to_value) }}
+                  {% elif row.field == 'shipping_status' %}ارسال: {{ shipping_status_labels.get(row.to_value, row.to_value) }}
+                  {% else %}{{ row.field }}{% endif %}
+                </span>
+                <span class="tiny text-muted">{{ row.created_at|jdatetime }}</span>
+              </div>
+            </li>
+          {% else %}
+            <li class="small text-muted">وضعیتی ثبت نشده است.</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+
+    <aside class="card summary-card">
+      <div class="card-head"><h3>جزئیات پرداخت</h3></div>
+      <div class="summary-row"><span>جمع کالاها</span><span>{{ order.subtotal|money }}</span></div>
+      {% if order.discount_amount %}<div class="summary-row"><span>تخفیف</span><span class="value discount">− {{ order.discount_amount|money }}</span></div>{% endif %}
+      <div class="summary-row"><span>ارسال</span><span>{{ order.shipping_cost|money }}</span></div>
+      {% if order.tax_amount %}<div class="summary-row"><span>مالیات</span><span>{{ order.tax_amount|money }}</span></div>{% endif %}
+      <div class="summary-row total"><span>مبلغ کل</span><span>{{ order.total_amount|money }}</span></div>
+
+      {% if order.can_be_paid %}
+        <a class="btn btn-primary btn-block mt-2" href="{{ url_for('payment.start', order_number=order.order_number) }}">پرداخت سفارش</a>
+      {% endif %}
+
+      <div class="mt-2">
+        <div class="kv"><span>گیرنده</span><span>{{ order.customer_name }}</span></div>
+        <div class="kv"><span>موبایل</span><span dir="ltr">{{ order.customer_mobile }}</span></div>
+        {% if order.shipping_method_name %}<div class="kv"><span>روش ارسال</span><span>{{ order.shipping_method_name }}</span></div>{% endif %}
+        {% if order.shipping_address.get('full_address') %}
+          <div class="kv"><span>آدرس</span><span>{{ order.shipping_address.get('province') }}، {{ order.shipping_address.get('city') }} — {{ order.shipping_address.get('full_address') }}</span></div>
+        {% endif %}
+      </div>
+
+      {% if order.payments %}
+        <hr class="divider">
+        <h4 class="small">تراکنش‌ها</h4>
+        {% for payment in order.payments %}
+          <div class="kv">
+            <span>{{ payment.created_at|jdatetime }}</span>
+            <span>{{ payment.amount|money }} — {{ {'successful': 'موفق', 'failed': 'ناموفق', 'initiated': 'در انتظار', 'pending': 'در انتظار', 'cancelled': 'لغو‌شده'}.get(payment.status, payment.status) }}</span>
+          </div>
+        {% endfor %}
+      {% endif %}
+    </aside>
+  </div>
+</div>
+{% endblock %}

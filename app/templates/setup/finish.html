@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>نصب کامل شد — {{ store_name }}</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+<body style="background:#f1f5f9">
+  <div class="container" style="max-width:640px;padding-top:60px">
+    <div class="result-card" style="margin:0">
+      <div class="result-icon success">✓</div>
+      <h1>نصب با موفقیت انجام شد</h1>
+      <p>فروشگاه شما آماده استفاده است. برای شروع، از پنل مدیریت محصولات و تنظیمات را تکمیل کنید.</p>
+      <div class="result-actions">
+        <a class="btn btn-primary" href="{{ url_for('auth.login') }}">ورود به پنل مدیریت</a>
+        <a class="btn btn-outline" href="{{ url_for('storefront.home') }}">مشاهده فروشگاه</a>
+      </div>
+      <p class="tiny text-muted mt-2">برای امنیت بیشتر، فایل <code dir="ltr">instance/install_key.txt</code> را حذف کنید.</p>
+    </div>
+  </div>
+</body>
+</html>

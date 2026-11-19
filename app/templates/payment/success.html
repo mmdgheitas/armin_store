@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}پرداخت موفق — {{ store_name }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="result-card">
+    <div class="result-icon success">✓</div>
+    <h1>{{ settings.payment_success_note or 'پرداخت شما با موفقیت انجام شد.' }}</h1>
+    <p>سفارش شما ثبت شد و در حال آماده‌سازی است. کد پیگیری را نزد خود نگه دارید.</p>
+
+    <div class="result-details">
+      <div><span>شماره سفارش</span><strong>{{ order.order_number }}</strong></div>
+      <div><span>مبلغ پرداخت‌شده</span><strong>{{ order.total_amount|money }}</strong></div>
+      {% if payment %}
+        <div><span>کد رهگیری پرداخت</span><strong>{{ payment.reference_code or payment.transaction_id or '—' }}</strong></div>
+      {% endif %}
+      <div><span>تاریخ</span><strong>{{ (order.paid_at or order.created_at)|jdatetime }}</strong></div>
+      <div><span>وضعیت سفارش</span><strong>{{ order.status_label }}</strong></div>
+    </div>
+
+    <div class="result-actions">
+      {% if order.has_digital_items %}
+        <a class="btn btn-primary" href="{{ url_for('account.downloads') }}">دریافت فایل‌های خریداری‌شده</a>
+      {% endif %}
+      <a class="btn btn-outline" href="{{ url_for('storefront.order_view', order_number=order.order_number) }}">مشاهده سفارش</a>
+      <a class="btn btn-ghost" href="{{ url_for('storefront.product_list') }}">ادامه خرید</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,53 @@
+{% extends "admin/base.html" %}
+{% from "_macros.html" import status_badge %}
+{% block title %}تراکنش {{ payment.id }}{% endblock %}
+{% block page_title %}تراکنش {{ payment.id }}{% endblock %}
+{% block page_sub %}سفارش {{ payment.order.order_number }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>جزئیات تراکنش</h1><p>{{ payment.created_at|jlong }}</p></div>
+  <div class="page-actions">
+    <a class="btn btn-outline" href="{{ url_for('admin.order_detail', order_number=payment.order.order_number) }}">سفارش</a>
+    <a class="btn btn-outline" href="{{ url_for('admin.payments') }}">بازگشت</a>
+  </div>
+</div>
+<div class="dashboard-grid">
+  <div class="panel">
+    <div class="panel-head"><h2>اطلاعات تراکنش</h2>{{ status_badge(payment.status, payment_status_labels.get(payment.status, payment.status)) }}</div>
+    <div class="panel-body">
+      <div class="kv"><span>شناسه تراکنش داخلی</span><span>{{ payment.id }}</span></div>
+      <div class="kv"><span>درگاه</span><span>{{ payment.gateway }}</span></div>
+      <div class="kv"><span>مبلغ</span><span>{{ payment.amount|money }}</span></div>
+      <div class="kv"><span>واحد پول</span><span>{{ payment.currency }}</span></div>
+      <div class="kv"><span>توکن / Authority</span><span dir="ltr" class="tiny">{{ payment.authority_or_token or '—' }}</span></div>
+      <div class="kv"><span>شناسه تراکنش بانکی</span><span dir="ltr">{{ payment.transaction_id or '—' }}</span></div>
+      <div class="kv"><span>کد رهگیری</span><span dir="ltr">{{ payment.reference_code or '—' }}</span></div>
+      <div class="kv"><span>حالت آزمایشی</span><span>{{ 'بله' if payment.is_test else 'خیر' }}</span></div>
+      <div class="kv"><span>تأیید شده در</span><span>{{ payment.verified_at|jdatetime if payment.verified_at else '—' }}</span></div>
+      <div class="kv"><span>ایجاد</span><span>{{ payment.created_at|jdatetime }}</span></div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-head"><h2>سفارش مرتبط</h2></div>
+    <div class="panel-body">
+      <div class="kv"><span>شماره سفارش</span><span>{{ payment.order.order_number }}</span></div>
+      <div class="kv"><span>مشتری</span><span>{{ payment.order.customer_name }}</span></div>
+      <div class="kv"><span>مبلغ سفارش</span><span>{{ payment.order.total_amount|money }}</span></div>
+      <div class="kv"><span>وضعیت سفارش</span><span>{{ payment.order.status_label }}</span></div>
+      <div class="kv"><span>وضعیت پرداخت</span><span>{{ payment.order.payment_status_label }}</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-head"><h2>داده‌های خام (برای پشتیبانی)</h2></div>
+  <div class="panel-body">
+    <h3 class="small">درخواست به درگاه</h3>
+    <pre class="code-block">{{ request_data|tojson(indent=2) if request_data else '—' }}</pre>
+    <h3 class="small mt-2">پاسخ درگاه</h3>
+    <pre class="code-block">{{ response_data|tojson(indent=2) if response_data else '—' }}</pre>
+    <h3 class="small mt-2">Callback دریافت‌شده</h3>
+    <pre class="code-block">{{ callback_data|tojson(indent=2) if callback_data else '—' }}</pre>
+  </div>
+</div>
+{% endblock %}

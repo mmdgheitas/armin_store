@@ -1,0 +1,64 @@
+{% extends "admin/base.html" %}
+{% from "_macros.html" import pagination, status_badge %}
+{% block title %}ویدئوهای مشتریان{% endblock %}
+{% block page_title %}ویدئوهای مشتریان{% endblock %}
+{% block page_sub %}{{ page.total|number }} ویدئو{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>ویدئوهای مشتریان</h1><p>بررسی و تأیید ویدئوهای ارسالی خریداران</p></div></div>
+<div class="panel">
+  <div class="panel-head">
+    <form method="get" class="filter-bar">
+      <div class="field">
+        <label>وضعیت</label>
+        <select name="status">
+          <option value="">همه</option>
+          {% for value, label in statuses %}<option value="{{ value }}" {{ 'selected' if status == value }}>{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field" style="max-width:120px"><button type="submit" class="btn btn-primary btn-block">فیلتر</button></div>
+    </form>
+  </div>
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>ویدئو</th><th>محصول</th><th>کاربر</th><th>توضیح</th><th>وضعیت</th><th>تاریخ</th><th>عملیات</th></tr></thead>
+      <tbody>
+        {% for video in page.items %}
+          <tr>
+            <td><video src="{{ url_for('storefront.customer_video', video_id=video.id) }}" style="width:130px;border-radius:8px" preload="metadata" controls></video></td>
+            <td><a href="{{ url_for('admin.product_edit', product_id=video.product_id) }}">{{ video.product.name }}</a></td>
+            <td class="small">{{ video.user.full_name if video.user else '—' }}</td>
+            <td class="small" style="max-width:260px">{{ video.description|truncate(120) if video.description else '—' }}</td>
+            <td>{{ status_badge(video.status, video.status_label) }}</td>
+            <td class="tiny">{{ video.created_at|jdatetime }}</td>
+            <td>
+              <div class="actions">
+                {% if video.status != 'approved' %}
+                  <form method="post" action="{{ url_for('admin.video_moderate', video_id=video.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="action" value="approve">
+                    <button class="btn btn-success btn-sm">تأیید</button>
+                  </form>
+                {% endif %}
+                {% if video.status != 'rejected' %}
+                  <form method="post" action="{{ url_for('admin.video_moderate', video_id=video.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="action" value="reject">
+                    <button class="btn btn-warning btn-sm">رد</button>
+                  </form>
+                {% endif %}
+                <form method="post" action="{{ url_for('admin.video_delete', video_id=video.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-danger btn-sm" data-confirm="ویدئو حذف شود؟">حذف</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="7"><div class="empty"><p>ویدئویی یافت نشد.</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {{ pagination(page) }}
+</div>
+{% endblock %}

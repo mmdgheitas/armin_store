@@ -1,0 +1,128 @@
+{% extends "admin/base.html" %}
+{% block title %}گزارش فروش{% endblock %}
+{% block page_title %}گزارش‌ها{% endblock %}
+{% block page_sub %}{{ context.period_label }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>گزارش فروش</h1><p>{{ context.period_label }}</p></div>
+  <div class="page-actions">
+    <a class="btn btn-outline" href="{{ url_for('admin.reports_profit', **request.args) }}">گزارش سود</a>
+    <a class="btn btn-outline" href="{{ url_for('admin.reports_inventory') }}">انبار</a>
+    <div class="dropdown">
+      <button class="btn btn-primary" data-dropdown>⬇️ خروجی</button>
+      <div class="dropdown-menu">
+        <a href="{{ url_for('admin.reports_export', kind='sales', fmt='excel', **request.args) }}">خلاصه فروش — Excel</a>
+        <a href="{{ url_for('admin.reports_export', kind='sales', fmt='csv', **request.args) }}">خلاصه فروش — CSV</a>
+        <a href="{{ url_for('admin.reports_export', kind='sales', fmt='pdf', **request.args) }}">خلاصه فروش — PDF</a>
+        <a href="{{ url_for('admin.reports_export', kind='inventory', fmt='excel', **request.args) }}">موجودی انبار — Excel</a>
+        <a href="{{ url_for('admin.reports_export', kind='profit', fmt='excel', **request.args) }}">سود و زیان — Excel</a>
+        <a href="{{ url_for('admin.reports_export', kind='expenses', fmt='excel', **request.args) }}">هزینه‌ها — Excel</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<form method="get" class="filter-bar panel" style="padding:14px 18px">
+  <div class="field"><label>از تاریخ</label><input type="date" name="from" value="{{ context.from_value }}"></div>
+  <div class="field"><label>تا تاریخ</label><input type="date" name="to" value="{{ context.to_value }}"></div>
+  <div class="field" style="max-width:130px"><button class="btn btn-primary btn-block">اعمال</button></div>
+  <div class="field grow"></div>
+  <div class="tiny muted align-self-end">مبنا: تاریخ پرداخت سفارش‌ها (به وقت تهران)</div>
+</form>
+
+<div class="stats-grid">
+  <div class="stat-card accent">
+    <div class="top"><span class="label">فروش ناخالص</span><span class="icon">💰</span></div>
+    <div class="value">{{ summary.gross_sales|money }}</div>
+    <div class="hint">{{ summary.orders_count|number }} سفارش پرداخت‌شده</div>
+  </div>
+  <div class="stat-card">
+    <div class="top"><span class="label">درآمد کالا</span><span class="icon">🧾</span></div>
+    <div class="value">{{ summary.net_revenue|money }}</div>
+    <div class="hint">پس از کسر تخفیف</div>
+  </div>
+  <div class="stat-card">
+    <div class="top"><span class="label">سود ناخالص</span><span class="icon">📈</span></div>
+    <div class="value">{{ summary.gross_profit|money }}</div>
+    <div class="hint">حاشیه سود: {{ summary.margin_percent }}٪</div>
+  </div>
+  <div class="stat-card">
+    <div class="top"><span class="label">میانگین سفارش</span><span class="icon">🧮</span></div>
+    <div class="value">{{ summary.average_order|money }}</div>
+    <div class="hint">{{ summary.units|number }} قلم کالا</div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-head"><h2>روند فروش</h2><span class="sub">تجمیع روزانه بر اساس تاریخ پرداخت</span></div>
+  <div class="panel-body">
+    {% if series %}
+      <canvas data-chart data-height="260" data-points='{{ series|tojson }}'></canvas>
+      <div class="tiny muted mt-1">مجموع: {{ series|sum(attribute="value")|money }}</div>
+    {% else %}
+      <div class="empty"><p>در این بازه فروشی ثبت نشده است.</p></div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="dashboard-grid">
+  <div class="panel">
+    <div class="panel-head"><h2>پرفروش‌ترین محصولات</h2></div>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>محصول</th><th>تعداد</th><th>فروش</th><th>سود</th></tr></thead>
+        <tbody>
+          {% for row in top_products %}
+            <tr>
+              <td>{% if row.product_id %}<a href="{{ url_for('admin.product_edit', product_id=row.product_id) }}">{{ row.name }}</a>{% else %}{{ row.name }}{% endif %}</td>
+              <td class="num">{{ row.quantity|number }}</td>
+              <td class="num">{{ row.revenue|money }}</td>
+              <td class="num text-success">{{ row.profit|money }}</td>
+            </tr>
+          {% else %}
+            <tr><td colspan="4"><div class="empty"><p>داده‌ای نیست.</p></div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-head"><h2>مشتریان برتر</h2></div>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>مشتری</th><th>موبایل</th><th>سفارش</th><th>مبلغ</th></tr></thead>
+        <tbody>
+          {% for row in top_customers %}
+            <tr>
+              <td>{{ row.name }}</td>
+              <td dir="ltr" class="tiny">{{ row.mobile }}</td>
+              <td class="num">{{ row.orders|number }}</td>
+              <td class="num">{{ row.total|money }}</td>
+            </tr>
+          {% else %}
+            <tr><td colspan="4"><div class="empty"><p>داده‌ای نیست.</p></div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-head"><h2>جزئیات مالی</h2></div>
+  <div class="table-wrap">
+    <table class="data">
+      <tbody>
+        <tr><td>جمع کالاها</td><td class="num">{{ summary.subtotal|money }}</td></tr>
+        <tr><td>تخفیف‌ها</td><td class="num text-danger">{{ summary.discounts|money }}</td></tr>
+        <tr><td>هزینه ارسال</td><td class="num">{{ summary.shipping|money }}</td></tr>
+        <tr><td>مالیات</td><td class="num">{{ summary.tax|money }}</td></tr>
+        <tr><td>بهای تمام‌شده کالا (COGS)</td><td class="num">{{ summary.cogs|money }}</td></tr>
+        <tr><td>هزینه‌های عملیاتی</td><td class="num text-danger">{{ summary.expenses|money }}</td></tr>
+        <tr><td>مرجوعی/بازپرداخت</td><td class="num text-danger">{{ summary.refunds|money }}</td></tr>
+        <tr><td><strong>سود عملیاتی</strong></td><td class="num"><strong>{{ summary.operating_profit|money }}</strong></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

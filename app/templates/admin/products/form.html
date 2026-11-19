@@ -1,0 +1,267 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ 'ویرایش محصول' if product else 'محصول جدید' }}{% endblock %}
+{% block page_title %}{{ 'ویرایش محصول' if product else 'محصول جدید' }}{% endblock %}
+{% block page_sub %}{{ product.name if product else 'ایجاد محصول جدید' }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ 'ویرایش محصول' if product else 'ایجاد محصول جدید' }}</h1>
+    {% if product %}<p>شناسه {{ product.id }} — {{ product.sku }}</p>{% endif %}
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-outline" href="{{ url_for('admin.products') }}">بازگشت به فهرست</a>
+    {% if product %}<a class="btn btn-ghost" href="{{ url_for('storefront.product_detail', slug=product.slug) }}" target="_blank">مشاهده در سایت ↗</a>{% endif %}
+  </div>
+</div>
+
+<form method="post" action="{{ url_for('admin.product_edit', product_id=product.id) if product else url_for('admin.product_create') }}" enctype="multipart/form-data" data-dynamic-rows>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div class="panel">
+    <div class="panel-head"><h2>اطلاعات پایه</h2></div>
+    <div class="panel-body">
+      <div class="form-grid">
+        <div class="field">
+          <label for="name">نام محصول <span class="req">*</span></label>
+          <input type="text" id="name" name="name" value="{{ form.name or '' }}" required maxlength="220">
+        </div>
+        <div class="field">
+          <label for="category_id">دسته‌بندی</label>
+          <select id="category_id" name="category_id">
+            <option value="">— بدون دسته —</option>
+            {% for category in categories %}
+              <option value="{{ category.id }}" {{ 'selected' if form.category_id|string == category.id|string }}>{{ category.name }}{% if category.parent %} ({{ category.parent.name }}){% endif %}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="slug">نامک (URL)</label>
+          <input type="text" id="slug" name="slug" value="{{ form.slug or '' }}" maxlength="240" dir="ltr">
+          <small class="hint">خالی بگذارید تا خودکار از نام ساخته شود.</small>
+        </div>
+        <div class="field">
+          <label for="sku">کد SKU</label>
+          <input type="text" id="sku" name="sku" value="{{ form.sku or '' }}" maxlength="80" dir="ltr">
+        </div>
+        <div class="field">
+          <label for="product_type">نوع محصول</label>
+          <select id="product_type" name="product_type">
+            {% for value, label in product_types %}
+              <option value="{{ value }}" {{ 'selected' if form.product_type == value }}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="weight">وزن (گرم)</label>
+          <input type="number" id="weight" name="weight" value="{{ form.weight or 0 }}" min="0">
+        </div>
+        <div class="field">
+          <label for="base_price">قیمت پایه (تومان) <span class="req">*</span></label>
+          <input type="number" id="base_price" name="base_price" value="{{ form.base_price or 0 }}" min="0" required>
+        </div>
+        <div class="field">
+          <label for="base_cost">قیمت خرید (تومان)</label>
+          <input type="number" id="base_cost" name="base_cost" value="{{ form.base_cost or 0 }}" min="0">
+          <small class="hint">برای محاسبه سود در گزارش‌ها استفاده می‌شود.</small>
+        </div>
+        <div class="field">
+          <label for="short_description">توضیح کوتاه</label>
+          <input type="text" id="short_description" name="short_description" value="{{ form.short_description or '' }}" maxlength="400">
+        </div>
+        <div class="field">
+          <label for="initial_stock">موجودی اولیه (اگر تنوع تعریف نشود)</label>
+          <input type="number" id="initial_stock" name="initial_stock" value="{{ form.initial_stock or 0 }}" min="0">
+        </div>
+        <div class="field full">
+          <label for="description">توضیحات کامل</label>
+          <textarea id="description" name="description" style="min-height:180px">{{ form.description or '' }}</textarea>
+          <small class="hint">تگ‌های HTML مجاز پاک‌سازی می‌شوند.</small>
+        </div>
+        <div class="field full d-flex gap-2 flex-wrap">
+          <label class="checkbox-line"><input type="checkbox" name="is_active" value="1" {{ 'checked' if form.is_active is not defined or form.is_active }}> منتشر شود</label>
+          <label class="checkbox-line"><input type="checkbox" name="is_featured" value="1" {{ 'checked' if form.is_featured }}> محصول ویژه</label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <h2>تنوع‌ها (رنگ/سایز/بسته)</h2>
+      <button type="button" class="btn btn-outline btn-sm" data-add-row>➕ افزودن تنوع</button>
+    </div>
+    <div class="panel-body">
+      <div class="form-hint-box">اگر تنوعی تعریف نکنید، یک تنوع پیش‌فرض با قیمت پایه ساخته می‌شود. ویژگی‌ها را به‌صورت «رنگ: مشکی، سایز: L» وارد کنید.</div>
+      <div class="table-wrap">
+        <table class="data" style="min-width:820px">
+          <thead><tr><th>SKU</th><th>ویژگی‌ها</th><th>قیمت</th><th>قیمت قبل</th><th>خرید</th><th>موجودی</th><th>حد هشدار</th><th>پیش‌فرض</th><th></th></tr></thead>
+          <tbody data-rows-container>
+            {% for variant in (variants_form or []) %}
+              <tr data-row>
+                <td>
+                  <input type="hidden" name="variant_id[]" value="{{ variant.id }}">
+                  <input type="text" name="variant_sku[]" value="{{ variant.sku }}" dir="ltr" style="min-width:110px">
+                </td>
+                <td><input type="text" name="variant_attrs[]" value="{% for k, v in (variant.attributes_json or {}).items() %}{{ k }}: {{ v }}{% if not loop.last %}, {% endif %}{% endfor %}" placeholder="رنگ: مشکی" style="min-width:160px"></td>
+                <td><input type="number" name="variant_price[]" value="{{ variant.price }}" min="0" style="width:100px"></td>
+                <td><input type="number" name="variant_compare[]" value="{{ variant.compare_at_price or 0 }}" min="0" style="width:100px"></td>
+                <td><input type="number" name="variant_cost[]" value="{{ variant.cost_price or 0 }}" min="0" style="width:100px"></td>
+                <td><input type="number" name="variant_stock[]" value="{{ variant.stock_quantity }}" min="0" style="width:80px"></td>
+                <td><input type="number" name="variant_threshold[]" value="{{ variant.low_stock_threshold or 3 }}"	min="0" style="width:70px"></td>
+                <td><input type="radio" name="variant_default[]" value="{{ loop.index0 }}" {{ 'checked' if variant.is_default }}></td>
+                <td><button type="button" class="btn btn-danger btn-sm" data-remove-row>✕</button></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <template data-row-template>
+        <tr data-row>
+          <td>
+            <input type="hidden" name="variant_id[]" value="">
+            <input type="text" name="variant_sku[]" value="" dir="ltr" placeholder="SKU" style="min-width:110px">
+          </td>
+          <td><input type="text" name="variant_attrs[]" value="" placeholder="رنگ: مشکی" style="min-width:160px"></td>
+          <td><input type="number" name="variant_price[]" value="{{ form.base_price or 0 }}" min="0" style="width:100px"></td>
+          <td><input type="number" name="variant_compare[]" value="0" min="0" style="width:100px"></td>
+          <td><input type="number" name="variant_cost[]" value="{{ form.base_cost or 0 }}" min="0" style="width:100px"></td>
+          <td><input type="number" name="variant_stock[]" value="0" min="0" style="width:80px"></td>
+          <td><input type="number" name="variant_threshold[]" value="3" min="0" style="width:70px"></td>
+          <td><input type="radio" name="variant_default[]" value=""></td>
+          <td><button type="button" class="btn btn-danger btn-sm" data-remove-row>✕</button></td>
+        </tr>
+      </template>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head"><h2>سئو</h2></div>
+    <div class="panel-body">
+      <div class="form-grid">
+        <div class="field">
+          <label for="seo_title">عنوان سئو</label>
+          <input type="text" id="seo_title" name="seo_title" value="{{ form.seo_title or '' }}" maxlength="200">
+        </div>
+        <div class="field">
+          <label for="seo_description">توضیح متا</label>
+          <input type="text" id="seo_description" name="seo_description" value="{{ form.seo_description or '' }}" maxlength="300">
+        </div>
+        <div class="field full">
+          <label for="specifications">مشخصات فنی</label>
+          <textarea id="specifications" name="specifications" style="min-height:110px" placeholder="جنس: چرم&#10;گارانتی: ۱۸ ماه">{{ form.specifications or '' }}</textarea>
+          <small class="hint">هر مشخصه در یک خط، به شکل «نام: مقدار».</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel"><div class="panel-body"><div class="form-actions" style="margin:0;border:0;padding:0">
+    <button type="submit" class="btn btn-primary">💾 ذخیره محصول</button>
+    <a class="btn btn-outline" href="{{ url_for('admin.products') }}">انصراف</a>
+  </div></div></div>
+</form>
+
+{% if product %}
+  <div class="panel">
+    <div class="panel-head"><h2>رسانه‌های محصول</h2><span class="sub">{{ media_items|length }} فایل</span></div>
+    <div class="panel-body">
+      <form method="post" action="{{ url_for('admin.product_media_upload', product_id=product.id) }}" enctype="multipart/form-data" class="mb-2">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-grid three">
+          <div class="field">
+            <label>نوع</label>
+            <select name="media_type"><option value="image">تصویر</option><option value="video">ویدئو</option></select>
+          </div>
+          <div class="field"><label>فایل</label><input type="file" name="file" accept="image/*,video/*"></div>
+          <div class="field"><label>یا لینک خارجی ویدئو</label><input type="url" name="external_url" dir="ltr" placeholder="https://www.aparat.com/v/..."></div>
+          <div class="field"><label>متن جایگزین</label><input type="text" name="alt_text" maxlength="200"></div>
+          <div class="field"><label>ترتیب</label><input type="number" name="sort_order" value="0"></div>
+          <div class="field" style="display:flex;align-items:flex-end"><button type="submit" class="btn btn-primary btn-block">افزودن رسانه</button></div>
+        </div>
+      </form>
+
+      {% if media_items %}
+        <div class="media-grid">
+          {% for media in media_items %}
+            <div class="media-tile">
+              {% if media.media_type == 'image' %}
+                <img src="{{ media.thumbnail_url }}" alt="{{ media.alt_text or product.name }}">
+              {% elif media.video_embed_url %}
+                <div style="aspect-ratio:1/1;display:grid;place-items:center;background:#0f172a;color:#fff">▶ ویدئو</div>
+              {% else %}
+                <video src="{{ media.display_url }}" controls preload="metadata"></video>
+              {% endif %}
+              <div class="meta"><span>{{ media.media_type }} #{{ media.sort_order }}</span></div>
+              <form method="post" action="{{ url_for('admin.product_media_delete', product_id=product.id, media_id=media.id) }}" class="del">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-danger btn-sm" data-confirm="رسانه حذف شود؟">✕</button>
+              </form>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="muted small mb-0">رسانه‌ای اضافه نشده است.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if product.is_digital %}
+    <div class="panel">
+      <div class="panel-head"><h2>دارایی‌های دیجیتال</h2><span class="sub">فایل، لینک یا کد لایسنس تحویل داده می‌شود</span></div>
+      <div class="panel-body">
+        <form method="post" action="{{ url_for('admin.product_asset_create', product_id=product.id) }}" enctype="multipart/form-data" class="mb-2">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="form-grid three">
+            <div class="field">
+              <label>نوع تحویل</label>
+              <select name="delivery_type">
+                {% for value, label in digital_types %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="field">
+              <label>مخصوص تنوع (اختیاری)</label>
+              <select name="variant_id">
+                <option value="">همه تنوع‌ها</option>
+                {% for variant in product.variants %}<option value="{{ variant.id }}">{{ variant.label_with_names }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="field"><label>عنوان</label><input type="text" name="title" maxlength="180"></div>
+            <div class="field"><label>فایل</label><input type="file" name="file"></div>
+            <div class="field"><label>لینک خارجی</label><input type="url" name="external_url" dir="ltr"></div>
+            <div class="field"><label>سقف دانلود</label><input type="number" name="download_limit" value="5" min="1"></div>
+            <div class="field"><label>مهلت (روز، ۰=نامحدود)</label><input type="number" name="download_expiry_days" value="0" min="0"></div>
+            <div class="field full"><label>کدهای لایسنس (هر کد یک خط)</label><textarea name="license_code" style="min-height:80px" dir="ltr"></textarea></div>
+            <div class="field" style="display:flex;align-items:flex-end"><button type="submit" class="btn btn-primary btn-block">افزودن دارایی</button></div>
+          </div>
+        </form>
+
+        {% if assets %}
+          <div class="table-wrap">
+            <table class="data">
+              <thead><tr><th>نوع</th><th>عنوان</th><th>تنوع</th><th>سقف دانلود</th><th>مهلت</th><th></th></tr></thead>
+              <tbody>
+                {% for asset in assets %}
+                  <tr>
+                    <td><span class="badge badge-info">{{ {'file': 'فایل', 'link': 'لینک', 'license': 'لایسنس'}.get(asset.delivery_type, asset.delivery_type) }}</span></td>
+                    <td>{{ asset.title or '—' }}</td>
+                    <td class="tiny">{{ asset.variant.label_with_names if asset.variant else 'همه' }}</td>
+                    <td>{{ asset.download_limit|number }}</td>
+                    <td>{{ asset.download_expiry_days|number }} روز</td>
+                    <td>
+                      <form method="post" action="{{ url_for('admin.product_asset_delete', product_id=product.id, asset_id=asset.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-danger btn-sm" data-confirm="دارایی حذف شود؟">حذف</button>
+                      </form>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="muted small mb-0">دارایی دیجیتالی ثبت نشده است. تا زمان ثبت دارایی، خریدار فایلی دریافت نمی‌کند.</p>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+{% endif %}
+{% endblock %}

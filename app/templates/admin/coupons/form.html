@@ -1,0 +1,95 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ 'ویرایش کد تخفیف' if coupon else 'کد تخفیف جدید' }}{% endblock %}
+{% block page_title %}{{ 'ویرایش کد تخفیف' if coupon else 'کد تخفیف جدید' }}{% endblock %}
+{% block page_sub %}{{ coupon.code if coupon else 'ایجاد کوپن' }}{% endblock %}
+{% block content %}
+{% set data = form if form is defined and form else {} %}
+<div class="page-head">
+  <div><h1>{{ 'ویرایش کد تخفیف' if coupon else 'کد تخفیف جدید' }}</h1></div>
+  <div class="page-actions"><a class="btn btn-outline" href="{{ url_for('admin.coupons') }}">بازگشت</a></div>
+</div>
+<div class="panel" style="max-width:820px">
+  <div class="panel-body">
+    <form method="post" action="{{ url_for('admin.coupon_save', coupon_id=coupon.id) if coupon else url_for('admin.coupon_save') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-grid">
+        <div class="field">
+          <label for="code">کد تخفیف <span class="req">*</span></label>
+          <input type="text" id="code" name="code" value="{{ data.get('code', coupon.code if coupon else '') }}" required minlength="3" maxlength="50" dir="ltr" style="text-transform:uppercase">
+        </div>
+        <div class="field">
+          <label for="description">توضیح</label>
+          <input type="text" id="description" name="description" value="{{ data.get('description', coupon.description if coupon else '') }}" maxlength="255">
+        </div>
+        <div class="field">
+          <label for="discount_type">نوع تخفیف</label>
+          <select id="discount_type" name="discount_type">
+            <option value="percent" {{ 'selected' if (data.get('discount_type') or (coupon.discount_type if coupon else '')) == 'percent' }}>درصدی</option>
+            <option value="fixed" {{ 'selected' if (data.get('discount_type') or (coupon.discount_type if coupon else '')) == 'fixed' }}>مبلغ ثابت (تومان)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="discount_value">مقدار تخفیف <span class="req">*</span></label>
+          <input type="number" id="discount_value" name="discount_value" value="{{ data.get('discount_value', coupon.discount_value if coupon else '') }}" min="1" required>
+        </div>
+        <div class="field">
+          <label for="minimum_order">حداقل مبلغ سفارش (تومان)</label>
+          <input type="number" id="minimum_order" name="minimum_order" value="{{ data.get('minimum_order', coupon.minimum_order if coupon else 0) }}" min="0">
+        </div>
+        <div class="field">
+          <label for="maximum_discount">سقف تخفیف (تومان، ۰=نامحدود)</label>
+          <input type="number" id="maximum_discount" name="maximum_discount" value="{{ data.get('maximum_discount', coupon.maximum_discount if coupon else 0) }}" min="0">
+        </div>
+        <div class="field">
+          <label for="usage_limit">سقف کل استفاده (۰=نامحدود)</label>
+          <input type="number" id="usage_limit" name="usage_limit" value="{{ data.get('usage_limit', coupon.usage_limit if coupon else 0) }}" min="0">
+        </div>
+        <div class="field">
+          <label for="per_user_limit">سقف استفاده هر کاربر</label>
+          <input type="number" id="per_user_limit" name="per_user_limit" value="{{ data.get('per_user_limit', coupon.per_user_limit if coupon else 1) }}" min="0">
+        </div>
+        <div class="field">
+          <label for="starts_at">شروع</label>
+          <input type="datetime-local" id="starts_at" name="starts_at" value="{{ coupon.starts_at.strftime('%Y-%m-%dT%H:%M') if coupon and coupon.starts_at else data.get('starts_at', '') }}">
+        </div>
+        <div class="field">
+          <label for="expires_at">پایان</label>
+          <input type="datetime-local" id="expires_at" name="expires_at" value="{{ coupon.expires_at.strftime('%Y-%m-%dT%H:%M') if coupon and coupon.expires_at else data.get('expires_at', '') }}">
+        </div>
+        <div class="field">
+          <label for="applies_to">دامنه اعمال</label>
+          <select id="applies_to" name="applies_to">
+            {% set applies = data.get('applies_to') or (coupon.applies_to if coupon else 'all') %}
+            <option value="all" {{ 'selected' if applies == 'all' }}>همه محصولات</option>
+            <option value="category" {{ 'selected' if applies == 'category' }}>فقط یک دسته‌بندی</option>
+            <option value="product" {{ 'selected' if applies == 'product' }}>فقط یک محصول</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="category_id">دسته‌بندی</label>
+          <select id="category_id" name="category_id">
+            <option value="">—</option>
+            {% for category in categories %}
+              <option value="{{ category.id }}" {{ 'selected' if coupon and coupon.category_id == category.id }}>{{ category.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="product_id">محصول</label>
+          <select id="product_id" name="product_id">
+            <option value="">—</option>
+            {% for product in products %}
+              <option value="{{ product.id }}" {{ 'selected' if coupon and coupon.product_id == product.id }}>{{ product.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <label class="checkbox-line mt-2"><input type="checkbox" name="is_active" value="1" {{ 'checked' if not coupon or coupon.is_active }}> فعال باشد</label>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">💾 ذخیره کد تخفیف</button>
+        <a class="btn btn-outline" href="{{ url_for('admin.coupons') }}">انصراف</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

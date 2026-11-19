@@ -1,0 +1,82 @@
+{% extends "admin/base.html" %}
+{% from "_macros.html" import pagination, status_badge %}
+{% block title %}پرونده {{ user.full_name }}{% endblock %}
+{% block page_title %}پرونده مشتری{% endblock %}
+{% block page_sub %}{{ user.full_name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ user.full_name }}</h1>
+    <p dir="ltr">{{ user.mobile }}{% if user.email %} — {{ user.email }}{% endif %}</p>
+  </div>
+  <div class="page-actions"><a class="btn btn-outline" href="{{ url_for('admin.customers') }}">بازگشت</a></div>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card"><div class="top"><span class="label">سفارش‌های پرداخت‌شده</span><span class="icon">🧾</span></div><div class="value">{{ paid_orders|number }}</div></div>
+  <div class="stat-card accent"><div class="top"><span class="label">مجموع خرید</span><span class="icon">💰</span></div><div class="value">{{ total_spent|money }}</div></div>
+  <div class="stat-card"><div class="top"><span class="label">تعداد آدرس‌ها</span><span class="icon">📍</span></div><div class="value">{{ user.addresses|length|number }}</div></div>
+  <div class="stat-card"><div class="top"><span class="label">وضعیت حساب</span><span class="icon">👤</span></div><div class="value" style="font-size:1rem">{{ 'فعال' if user.is_active else 'غیرفعال' }}</div><div class="hint">{{ 'تأییدشده' if user.is_verified else 'موبایل تأیید نشده' }}</div></div>
+</div>
+
+<div class="dashboard-grid">
+  <div class="panel">
+    <div class="panel-head"><h2>سفارش‌ها</h2></div>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>شماره</th><th>تاریخ</th><th>مبلغ</th><th>پرداخت</th><th>وضعیت</th><th></th></tr></thead>
+        <tbody>
+          {% for order in page.items %}
+            <tr>
+              <td>{{ order.order_number }}</td>
+              <td class="tiny">{{ order.created_at|jdatetime }}</td>
+              <td class="num">{{ order.total_amount|money }}</td>
+              <td>{{ status_badge(order.payment_status, order.payment_status_label) }}</td>
+              <td>{{ status_badge(order.status, order.status_label) }}</td>
+              <td><a class="btn btn-outline btn-sm" href="{{ url_for('admin.order_detail', order_number=order.order_number) }}">مشاهده</a></td>
+            </tr>
+          {% else %}
+            <tr><td colspan="6"><div class="empty"><p>سفارشی ثبت نشده است.</p></div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {{ pagination(page) }}
+  </div>
+
+  <div>
+    <div class="panel">
+      <div class="panel-head"><h2>اقدامات</h2></div>
+      <div class="panel-body">
+        <div class="kv"><span>عضویت</span><span>{{ user.created_at|jdate }}</span></div>
+        <div class="kv"><span>آخرین ورود</span><span>{{ user.last_login_at|jdatetime if user.last_login_at else '—' }}</span></div>
+        <div class="kv"><span>نقش</span><span>{{ user.role_titles }}</span></div>
+        <form method="post" action="{{ url_for('admin.customer_toggle', user_id=user.id) }}" class="mt-2">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-outline btn-block" data-confirm="وضعیت حساب تغییر کند؟">{{ 'مسدودسازی حساب' if user.is_active else 'فعال‌سازی حساب' }}</button>
+        </form>
+        <form method="post" action="{{ url_for('admin.customer_reset_password', user_id=user.id) }}" class="mt-2">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="field"><label>رمز عبور موقت جدید</label><input type="text" name="new_password" minlength="8" required></div>
+          <button type="submit" class="btn btn-warning btn-block mt-1" data-confirm="رمز عبور بازنشانی شود؟">بازنشانی رمز</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2>آدرس‌ها</h2></div>
+      <div class="panel-body">
+        {% for address in user.addresses %}
+          <div class="mb-2">
+            <strong class="small">{{ address.recipient_name }}</strong>
+            <div class="tiny muted">{{ address.province }}، {{ address.city }} — {{ address.full_address }}</div>
+            <div class="tiny muted" dir="ltr">{{ address.mobile }}</div>
+          </div>
+        {% else %}
+          <p class="muted small mb-0">آدرسی ثبت نشده است.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
